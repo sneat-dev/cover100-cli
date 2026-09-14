@@ -223,7 +223,9 @@ func TestFindRunnerBinary_FindsHoistedAncestorInstall(t *testing.T) {
 	if err := os.MkdirAll(binDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(binDir, "vitest")
+	// The lookup appends the platform's runner suffix (.cmd on Windows), so the
+	// stub has to carry it too.
+	want := filepath.Join(binDir, "vitest"+runnerExecutableSuffix)
 	if err := os.WriteFile(want, []byte("#!/bin/sh\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}

@@ -285,6 +285,9 @@ func TestRun_FallsBackToNpxWhenNoLocalRunner(t *testing.T) {
 	root, pkgDir := packageFixture(t)
 	abs := filepath.Join(pkgDir, "src", "a.ts")
 
+	if runtime.GOOS == "windows" {
+		t.Skip("the npx stub is a POSIX shell script")
+	}
 	// A stub npx on PATH stands in for a globally installed Node.js.
 	npxDir := t.TempDir()
 	script := "#!/bin/sh\n" + strings.Replace(reportWriterScript(istanbulBody(abs)), "mkdir -p", "/bin/mkdir -p", 1)

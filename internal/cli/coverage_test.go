@@ -655,8 +655,11 @@ func TestCleanupIntermediates_LogsWhatItCannotRemove(t *testing.T) {
 
 	cleanupIntermediates(printer, goResultsN(1), nil, workDir, false)
 
-	if !strings.Contains(verbose.String(), "go-0.out") || !strings.Contains(verbose.String(), "directory not empty") {
-		t.Errorf("verbose log = %q, want it to name the artefact and why removal failed", verbose.String())
+	// Only the artefact's identity is asserted: the reason text is the
+	// operating system's ("directory not empty" on Unix, "The directory is not
+	// empty." on Windows).
+	if !strings.Contains(verbose.String(), "go-0.out") {
+		t.Errorf("verbose log = %q, want it to name the artefact it could not remove", verbose.String())
 	}
 }
 
