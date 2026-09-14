@@ -1,0 +1,27 @@
+# SpecScore lifecycle state
+specscore.local.yaml
+**/.*.lifecycle-transaction.lock
+.specscore-lifecycle.lock
+
+# cover100's own output, including the default report location
+.cover100/
+
+# Compiled binaries
+/cover100
+/cover100.exe
+/dist/
+
+# Go test artefacts
+*.test
+coverage.out
+coverage.txt
+
+# Example fixture dependencies. The fixture's lock file IS committed so the
+# example stays reproducible; its installed tree is not.
+examples/*/web/node_modules/
+examples/*/*/node_modules/
+
+# Editor and OS noise
+.DS_Store
+.idea/
+.vscode/

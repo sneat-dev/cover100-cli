@@ -1,0 +1,10 @@
+# SpecScore Repo Config Schema: https://specscore.md/repo-config
+
+project:
+    title: cover100-cli — coverage treemap CLI
+    host: github.com
+    org: sneat-dev
+    repo: cover100-cli
+
+# Required before using Plan commands; may point to this repository.
+# plans_repo: owner/repository

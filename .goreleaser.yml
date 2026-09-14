@@ -1,0 +1,62 @@
+version: 2
+
+project_name: cover100
+
+before:
+  hooks:
+    # VERIFY tidiness; never impose it. A mutating `go mod tidy` here rewrites
+    # go.mod inside the ephemeral release runner, so GoReleaser could publish
+    # binaries built from a different tree than the tagged one. `-diff` writes
+    # nothing and exits non-zero on drift, so the release stops instead.
+    - go mod tidy -diff
+
+builds:
+  - id: cover100
+    main: ./cmd/cover100
+    binary: cover100
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/strongo/buildinfo.version={{ .Version }}
+      - -X github.com/strongo/buildinfo.commit={{ .FullCommit }}
+      - -X github.com/strongo/buildinfo.date={{ .Date }}
+
+# Names below are cover100's own self-update defaults
+# (github.com/strongo/cli-helpers/selfupdate): the asset is
+# "cover100_<version>_<os>_<arch>.tar.gz" (".zip" on Windows) and the checksum
+# file is "cover100_<version>_checksums.txt". self-update verifies the
+# downloaded archive's sha256 against an entry in that file and refuses to
+# extract anything when the entry is missing, so these names are part of the
+# update contract, not cosmetics.
+archives:
+  - id: cover100
+    ids:
+      - cover100
+    name_template: "cover100_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: "cover100_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^spec:"
+      - Merge pull request
+      - Merge branch

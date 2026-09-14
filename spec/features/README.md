@@ -1,0 +1,23 @@
+---
+format: https://specscore.md/features-index-specification
+---
+
+# Features
+
+Feature specifications for this project.
+
+## Index
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| [Coverage collection and normalization](coverage-collection/README.md) | Approved | `cover100` detects Go modules and Node packages across a directory tree, runs `go test -coverprofile` and the project's own vitest or jest runner in each, and parses the resulting Go cover profile, Istanbul `coverage-final.json`, or `lcov.info` without depending on any external coverage tool. Everything is normalized into exactly one `root → repository → package → file → function` tree whose nodes carry all five `{covered, total}` metrics, whose ids are globally unique and reconstructible, and whose children are deterministically ordered. Level-grained line nodes are deliberately not materialized, Go files report `functionsAvailable: false` because profiles carry no function data, and a project that fails to collect produces a warning rather than discarding the other projects' results. |
+| [Treemap report document and viewer](treemap-report/README.md) | Approved | This feature fixes the JSON contract that the collector emits and the static, backend-free page that renders it as a zoomable D3 squarified treemap. The document carries canonical top-level keys plus additive `warnings` and `tool`, the page loads its data from `window.__COVER100_DATA__`, `?data=`, or `coverage.json`, and it honours `?metric=` and `?mode=` so the CLI default and the UI's initial state agree. Sizing and colour are kept independent: rectangles are sized by counted or uncovered volume with an explicit fallback to `lines.total` when a metric sums to zero, while colour always comes from the fixed red–yellow–green percentage scale and is never keyed off the sizing value. The language filter prunes the tree and re-derives roll-ups so container numbers always match their visible children, and the same sources also produce a single self-contained HTML file that works from `file://`. |
+| [CLI command surface and static server](cli-command-surface/README.md) | Approved | This feature is the contract scripts and CI see: `cover100 [path] [flags]` with `--out`, `--open`/`--no-open`, `--lang`, `--metric`, `--mode`, `--port`, `--keep`, `--no-serve`, `--file`, `--timeout`, `--format`, and `--verbose` at their exact defaults, with `--metric` and `--mode` passed through to the page so the CLI and UI cannot disagree. Assets are embedded with `go:embed` and served from a loopback-only server on the first free port at or above `--port`, the report is served at `/coverage.json`, and SIGINT or SIGTERM tears down the coverage command and the listener with exit code 130. Exit codes distinguish success-with-warnings from bad arguments, a missing or unsupported path, and unexpected failure, cleanup never removes the report it just wrote, `--format json` emits one machine-readable summary on stdout and nothing else, and the surface is wired on the shared cobra/fang/buildinfo/logus/self-update stack rather than hand-rolled equivalents. |
+| [Release and verification pipeline](release-pipeline/README.md) | Approved | This feature states what must hold before a tag becomes a release: a tidy `go.mod` and `go.sum` that CI checks with `go mod tidy -diff` instead of rewriting, unit tests on Linux, macOS, and Windows, and the SpecScore spec lint as a required gate. It requires a concrete test-coverage floor that the repository actually passes, GoReleaser artefacts across darwin, linux, and windows on amd64 and arm64 built with `CGO_ENABLED=0` and stamped with version, commit, and date through `github.com/strongo/buildinfo`, and plain release archives published with a `cover100_<version>_checksums.txt` because `self-update` resolves assets and verifies the downloaded archive's sha256 against that file's entries. A release is refused unless the CI workflow for the tagged commit succeeded, and `self-update` itself is safe by construction: it never overwrites a package-manager-owned install, verifies the checksum before extracting any bytes, and swaps atomically so a failed update leaves a working binary. |
+
+## Open Questions
+
+None at this time.
+
+---
+*This document follows the https://specscore.md/features-index-specification*

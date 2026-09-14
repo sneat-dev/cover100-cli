@@ -1,0 +1,50 @@
+name: Release
+
+# Continuous delivery: every merge to `main` runs the shared strongo/cicd
+# release workflow, which bumps the version from conventional commits and
+# releases it in one run. Pushing an explicit `vX.Y.Z` tag also works and
+# releases that exact version (the shared workflow skips the bump on a tag ref).
+#
+# cover100 publishes plain GitHub release archives only (see .goreleaser.yml) —
+# no Homebrew cask, Scoop bucket or WinGet manifest — so none of the shared
+# workflow's optional cross-repo publish secrets are needed. The default
+# GITHUB_TOKEN under `permissions: contents: write` is enough for GoReleaser to
+# create the release, and it is also what `cover100 self-update` reads back:
+# self-update downloads the asset and its checksums from this repository's own
+# releases.
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    # Pinned to an exact tag: a moving major tag can accept newer inputs while
+    # drifting behind, which silently disables a configured release gate.
+    uses: strongo/cicd/.github/workflows/release.yml@v1.18.0
+    permissions:
+      contents: write
+      # Lets the require_workflow_success guard read the quality workflow's
+      # result for this commit. A reusable workflow cannot grant itself more
+      # than its caller allows, so it belongs here.
+      actions: read
+    with:
+      # Refuse to tag or publish unless this repository's quality workflow
+      # passed for this exact commit. Release and that workflow are siblings
+      # started by the same push with no cross-workflow `needs:` between them,
+      # so without this a red suite could not stop a release.
+      require_workflow_success: 'Go CI'
+      # cover100-cli is pre-1.0: a stray `feat!:` is capped to a minor bump
+      # rather than jumping to v1.0.0.
+      allow_major_version_bump: false

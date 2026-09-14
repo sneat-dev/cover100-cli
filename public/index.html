@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>cover100 — coverage treemap</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand" title="cover100">cover100<span class="brand-sub">coverage treemap</span></div>
+
+  <div class="ctl">
+    <label class="ctl-label" for="metric">Metric</label>
+    <select id="metric" aria-label="Coverage metric">
+      <option value="lines">lines</option>
+      <option value="functions">functions</option>
+      <option value="files">files</option>
+      <option value="packages">packages</option>
+      <option value="repositories">repositories</option>
+    </select>
+  </div>
+
+  <div class="ctl">
+    <span class="ctl-label" id="mode-label">Mode</span>
+    <div class="segmented" role="group" aria-labelledby="mode-label">
+      <button type="button" id="mode-percent" class="seg" data-mode="percent" aria-pressed="true">percent</button>
+      <button type="button" id="mode-count" class="seg" data-mode="count" aria-pressed="false">count</button>
+    </div>
+  </div>
+
+  <div class="ctl" id="sizeby-ctl" hidden>
+    <label class="ctl-label" for="sizeby">Size by</label>
+    <select id="sizeby" aria-label="Treemap sizing value">
+      <option value="total">total</option>
+      <option value="uncovered">uncovered</option>
+    </select>
+  </div>
+
+  <div class="ctl">
+    <span class="ctl-label" id="lang-label">Languages</span>
+    <div class="langs" id="langs" role="group" aria-labelledby="lang-label"></div>
+  </div>
+
+  <div class="ctl ctl-grow">
+    <label class="ctl-label" for="search">Search</label>
+    <input id="search" type="search" placeholder="name or path" autocomplete="off" spellcheck="false"
+           aria-label="Search nodes by name or path">
+    <span class="matches" id="matches" aria-live="polite"></span>
+  </div>
+
+  <div class="ctl">
+    <button type="button" id="reset" class="btn" aria-label="Reset search, languages and zoom">Reset</button>
+  </div>
+
+  <div class="ctl">
+    <span class="ctl-label" id="legend-label">Legend</span>
+    <div class="legend" role="group" aria-labelledby="legend-label">
+      <span class="legend-grey" title="not measured" aria-label="not measured"></span>
+      <div class="legend-scale">
+        <div class="legend-bar" id="legend-bar"></div>
+        <div class="legend-ticks">
+          <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="subbar">
+  <nav class="breadcrumb" id="breadcrumb" aria-label="Zoom path"></nav>
+  <div class="status">
+    <span class="notice" id="notice" hidden></span>
+    <span class="warnings" id="warnings"></span>
+    <span class="summary" id="summary" aria-live="polite"></span>
+  </div>
+</div>
+
+<main class="stage" id="stage">
+  <div class="chart" id="chart"></div>
+  <section class="error" id="error" hidden aria-live="assertive"></section>
+</main>
+
+<div class="tooltip" id="tooltip" role="tooltip" hidden>
+  <div class="tt-head">
+    <span class="tt-name" id="tt-name"></span>
+    <span class="tt-type" id="tt-type"></span>
+  </div>
+  <div class="tt-row tt-lang mono" id="tt-lang"></div>
+  <div class="tt-row tt-path mono" id="tt-path"></div>
+  <div class="tt-metrics" id="tt-metrics"></div>
+  <div class="tt-row tt-fn" id="tt-fn"></div>
+  <div class="tt-row tt-note" id="tt-note"></div>
+  <button type="button" class="tt-copy" id="tt-copy">Copy path</button>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

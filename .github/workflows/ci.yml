@@ -1,0 +1,97 @@
+name: Go CI
+
+on:
+  push:
+    branches-ignore:
+      - renovate/**
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches:
+      - '**'
+
+permissions:
+  contents: read
+
+jobs:
+  # The CLI is a single static binary, so the platforms it claims to support
+  # are the platforms that must build and test it. Windows matters most: the
+  # collectors shell out, and path handling differs there.
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Build
+        run: go build ./...
+      - name: Vet
+        run: go vet ./...
+      - name: Test
+        run: go test ./...
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "these files are not gofmt-clean:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+  # The coverage floor is a real number this repository passes, not an
+  # aspiration. It exists to catch a new branch arriving with no test at all,
+  # which is how the "uncovered lines silently vanish" class of bug gets in.
+  coverage:
+    name: Coverage floor
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Measure and enforce the floor
+        run: make cover
+        env:
+          COVERAGE_FLOOR: 75
+
+  # Fail on go.mod/go.sum drift rather than letting a release runner repair it:
+  # `-diff` reports without rewriting, so what is tagged is what was tested.
+  go-mod-tidy:
+    name: go.mod is tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: go mod tidy -diff
+        run: go mod tidy -diff
+
+  # The specification tree is part of the contract, so drift in it fails CI
+  # exactly like a failing test.
+  spec-lint:
+    name: SpecScore spec tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install the SpecScore CLI
+        run: go install github.com/specscore/specscore-cli/cmd/specscore@latest
+      - name: Lint the spec tree
+        run: specscore spec lint --severity warning
