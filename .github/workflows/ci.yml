@@ -92,6 +92,13 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Install the SpecScore CLI
+        # setup-go pins GOTOOLCHAIN=local for reproducible builds of this
+        # module, but the SpecScore CLI is a separate module with its own (newer)
+        # Go requirement. auto lets `go install` fetch the toolchain it needs
+        # instead of failing, without loosening the version this module builds
+        # with everywhere else.
+        env:
+          GOTOOLCHAIN: auto
         run: go install github.com/specscore/specscore-cli/cmd/specscore@latest
       - name: Lint the spec tree
         run: specscore spec lint --severity warning
