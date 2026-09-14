@@ -9,25 +9,25 @@ $ cover100
 
 ```
 cover100 0.1.0
-info: scanning /Users/you/src/my-app
+info: scanning /tmp/cover100-example/sample-go-ts
 
 Detecting projects
 ok: 1 Go module
 ok: 1 Node package with a test script
 
 Collecting coverage
-ok: js  web (vitest)                                52.5% lines    21/40  727ms
-ok: go  . (example.com/sample)                      27.3% lines     6/22  298ms
+ok: go  . (example.com/sample)                      27.3% lines     6/22  258ms
+ok: js  web (vitest)                                40.0% lines     8/20  380ms
 
 Report
 repository    language    lines        functions     files
 ----------    --------    -----        ---------     -----
-web           typescript  21/40 52.5%  4/8 50.0%     2/2 100.0%
 sample-go-ts  go          6/22 27.3%   not measured  1/2 50.0%
-overall                   27/62 43.5%  4/8 50.0%     3/4 75.0%
+web           typescript  8/20 40.0%   5/10 50.0%   2/2 100.0%
+overall                   14/42 33.3%  5/10 50.0%   3/4 75.0%
 
-ok: wrote /Users/you/src/my-app/.cover100/coverage.json (15.5 KiB)
-ok: wrote /Users/you/src/my-app/.cover100/view.html
+ok: wrote /tmp/cover100-example/sample-go-ts/.cover100/coverage.json (17.4 KiB)
+ok: wrote /tmp/cover100-example/sample-go-ts/.cover100/view.html
 info: serving http://127.0.0.1:5173/?data=/coverage.json&metric=lines&mode=percent
 info: press Ctrl+C to stop
 ```
@@ -45,14 +45,21 @@ Reading it left to right:
    `percent` active, the *size by* selector on `total`, one checkbox per
    language present in the report (`go`, `typescript`), the search box, a reset
    control, and the colour legend from 0% to 100%.
-2. **The two repositories.** `web` (TypeScript) holds the larger share of the
-   measured lines, so it takes the larger area; the Go module sits beside it.
-3. **Colour.** `util/format.ts` is mostly uncovered and reads amber-to-red.
-   `checkout/cart.ts` is more than half covered. The Go module's `internal/store`
-   package is fully red — it has no tests at all.
+2. **The two repositories.** `sample-go-ts` (the Go module, 27.3%) holds the
+   larger share of measured lines here, so it takes the left side; `web`
+   (TypeScript, 40.0%) sits beside it. The split is data, not layout policy.
+3. **Colour.** `util/format.ts` is 20% covered — a wide red field with one small
+   green box for the single covered function. `checkout/cart.ts` is 46.7%:
+   `addItem` and `total` are green, `removeItem` and `discount` are large red
+   boxes. The Go module's `internal/store` package is fully red at 0% — it has
+   no tests at all — while `calc` shows amber at 40%.
 4. **Grey is not red.** Selecting the **functions** metric greys out the Go
    boxes: Go profiles carry no function data, so those boxes say *not measured*
    rather than pretending to be 0%.
+5. **Anonymous functions are the provider's, not ours.** The small
+   `(anonymous_1)`-style boxes inside `cart.ts` are class field initializers:
+   vitest's v8 provider reports them as unnamed functions, so they appear in the
+   functions metric with no useful name.
 
 ## Try the interactions
 

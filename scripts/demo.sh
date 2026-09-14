@@ -10,7 +10,11 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 fixture_src="${repo_root}/examples/sample-go-ts"
-work="${TMPDIR:-/tmp}/cover100-example"
+# A fixed scratch path, not $TMPDIR: the report's `root` field is committed, so
+# it must be the same string on every machine that regenerates it. On macOS
+# $TMPDIR is a per-boot /var/folders/... path, which would churn the example on
+# every run.
+work="${COVER100_DEMO_DIR:-/tmp/cover100-example}"
 fixture="${work}/sample-go-ts"
 
 rm -rf "${work}"

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-14T17:05:34Z",
+  "generatedAt": "2026-09-14T17:43:13Z",
   "root": "/tmp/cover100-example/sample-go-ts",
   "metrics": [
     "lines",
@@ -18,12 +18,12 @@
     "type": "root",
     "language": null,
     "lines": {
-      "covered": 27,
-      "total": 62
+      "covered": 14,
+      "total": 42
     },
     "functions": {
-      "covered": 4,
-      "total": 8
+      "covered": 5,
+      "total": 10
     },
     "files": {
       "covered": 3,
@@ -38,391 +38,6 @@
       "total": 2
     },
     "children": [
-      {
-        "id": "repo:web",
-        "name": "web",
-        "type": "repository",
-        "language": "typescript",
-        "path": "web",
-        "lines": {
-          "covered": 21,
-          "total": 40
-        },
-        "functions": {
-          "covered": 4,
-          "total": 8
-        },
-        "files": {
-          "covered": 2,
-          "total": 2
-        },
-        "packages": {
-          "covered": 2,
-          "total": 2
-        },
-        "repositories": {
-          "covered": 1,
-          "total": 1
-        },
-        "children": [
-          {
-            "id": "pkg:web/src/checkout",
-            "name": "checkout",
-            "type": "package",
-            "language": "typescript",
-            "path": "src/checkout",
-            "lines": {
-              "covered": 16,
-              "total": 28
-            },
-            "functions": {
-              "covered": 3,
-              "total": 5
-            },
-            "files": {
-              "covered": 1,
-              "total": 1
-            },
-            "packages": {
-              "covered": 1,
-              "total": 1
-            },
-            "repositories": {
-              "covered": 1,
-              "total": 1
-            },
-            "children": [
-              {
-                "id": "file:web/src/checkout/cart.ts",
-                "name": "cart.ts",
-                "type": "file",
-                "language": "typescript",
-                "path": "src/checkout/cart.ts",
-                "branches": {
-                  "covered": 7,
-                  "total": 7
-                },
-                "lines": {
-                  "covered": 16,
-                  "total": 28
-                },
-                "functions": {
-                  "covered": 3,
-                  "total": 5
-                },
-                "files": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "packages": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "repositories": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "children": [
-                  {
-                    "id": "fn:web/src/checkout/cart.ts#addItem@17",
-                    "name": "addItem",
-                    "type": "function",
-                    "language": null,
-                    "line": 17,
-                    "hits": 4,
-                    "covered": true,
-                    "lines": {
-                      "covered": 7,
-                      "total": 7
-                    },
-                    "functions": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 1,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/checkout/cart.ts#removeItem@26",
-                    "name": "removeItem",
-                    "type": "function",
-                    "language": null,
-                    "line": 26,
-                    "hits": 0,
-                    "covered": false,
-                    "lines": {
-                      "covered": 0,
-                      "total": 7
-                    },
-                    "functions": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 0,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/checkout/cart.ts#discount@39",
-                    "name": "discount",
-                    "type": "function",
-                    "language": null,
-                    "line": 39,
-                    "hits": 0,
-                    "covered": false,
-                    "lines": {
-                      "covered": 0,
-                      "total": 5
-                    },
-                    "functions": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 0,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/checkout/cart.ts#total@35",
-                    "name": "total",
-                    "type": "function",
-                    "language": null,
-                    "line": 35,
-                    "hits": 3,
-                    "covered": true,
-                    "lines": {
-                      "covered": 2,
-                      "total": 2
-                    },
-                    "functions": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 1,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/checkout/cart.ts#\u003cinstance_members_initializer\u003e@15",
-                    "name": "\u003cinstance_members_initializer\u003e",
-                    "type": "function",
-                    "language": null,
-                    "line": 15,
-                    "hits": 3,
-                    "covered": true,
-                    "lines": {
-                      "covered": 0,
-                      "total": 0
-                    },
-                    "functions": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 0,
-                      "total": 1
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "pkg:web/src/util",
-            "name": "util",
-            "type": "package",
-            "language": "typescript",
-            "path": "src/util",
-            "lines": {
-              "covered": 5,
-              "total": 12
-            },
-            "functions": {
-              "covered": 1,
-              "total": 3
-            },
-            "files": {
-              "covered": 1,
-              "total": 1
-            },
-            "packages": {
-              "covered": 1,
-              "total": 1
-            },
-            "repositories": {
-              "covered": 1,
-              "total": 1
-            },
-            "children": [
-              {
-                "id": "file:web/src/util/format.ts",
-                "name": "format.ts",
-                "type": "file",
-                "language": "typescript",
-                "path": "src/util/format.ts",
-                "branches": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "lines": {
-                  "covered": 5,
-                  "total": 12
-                },
-                "functions": {
-                  "covered": 1,
-                  "total": 3
-                },
-                "files": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "packages": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "repositories": {
-                  "covered": 1,
-                  "total": 1
-                },
-                "children": [
-                  {
-                    "id": "fn:web/src/util/format.ts#truncate@18",
-                    "name": "truncate",
-                    "type": "function",
-                    "language": null,
-                    "line": 18,
-                    "hits": 0,
-                    "covered": false,
-                    "lines": {
-                      "covered": 0,
-                      "total": 5
-                    },
-                    "functions": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 0,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/util/format.ts#formatMoney@8",
-                    "name": "formatMoney",
-                    "type": "function",
-                    "language": null,
-                    "line": 8,
-                    "hits": 2,
-                    "covered": true,
-                    "lines": {
-                      "covered": 2,
-                      "total": 2
-                    },
-                    "functions": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 1,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 1,
-                      "total": 1
-                    }
-                  },
-                  {
-                    "id": "fn:web/src/util/format.ts#formatPercent@13",
-                    "name": "formatPercent",
-                    "type": "function",
-                    "language": null,
-                    "line": 13,
-                    "hits": 0,
-                    "covered": false,
-                    "lines": {
-                      "covered": 0,
-                      "total": 2
-                    },
-                    "functions": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "files": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "packages": {
-                      "covered": 0,
-                      "total": 1
-                    },
-                    "repositories": {
-                      "covered": 0,
-                      "total": 1
-                    }
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      },
       {
         "id": "repo:.",
         "name": "sample-go-ts",
@@ -565,8 +180,451 @@
             ]
           }
         ]
+      },
+      {
+        "id": "repo:web",
+        "name": "web",
+        "type": "repository",
+        "language": "typescript",
+        "path": "web",
+        "lines": {
+          "covered": 8,
+          "total": 20
+        },
+        "functions": {
+          "covered": 5,
+          "total": 10
+        },
+        "files": {
+          "covered": 2,
+          "total": 2
+        },
+        "packages": {
+          "covered": 2,
+          "total": 2
+        },
+        "repositories": {
+          "covered": 1,
+          "total": 1
+        },
+        "children": [
+          {
+            "id": "pkg:web/src/checkout",
+            "name": "checkout",
+            "type": "package",
+            "language": "typescript",
+            "path": "src/checkout",
+            "lines": {
+              "covered": 7,
+              "total": 15
+            },
+            "functions": {
+              "covered": 4,
+              "total": 7
+            },
+            "files": {
+              "covered": 1,
+              "total": 1
+            },
+            "packages": {
+              "covered": 1,
+              "total": 1
+            },
+            "repositories": {
+              "covered": 1,
+              "total": 1
+            },
+            "children": [
+              {
+                "id": "file:web/src/checkout/cart.ts",
+                "name": "cart.ts",
+                "type": "file",
+                "language": "typescript",
+                "path": "src/checkout/cart.ts",
+                "branches": {
+                  "covered": 2,
+                  "total": 8
+                },
+                "lines": {
+                  "covered": 7,
+                  "total": 15
+                },
+                "functions": {
+                  "covered": 4,
+                  "total": 7
+                },
+                "files": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "packages": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "repositories": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "children": [
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#addItem@17",
+                    "name": "addItem",
+                    "type": "function",
+                    "language": null,
+                    "line": 17,
+                    "hits": 4,
+                    "covered": true,
+                    "lines": {
+                      "covered": 5,
+                      "total": 5
+                    },
+                    "functions": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 1,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#removeItem@26",
+                    "name": "removeItem",
+                    "type": "function",
+                    "language": null,
+                    "line": 26,
+                    "hits": 0,
+                    "covered": false,
+                    "lines": {
+                      "covered": 0,
+                      "total": 5
+                    },
+                    "functions": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 0,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#discount@39",
+                    "name": "discount",
+                    "type": "function",
+                    "language": null,
+                    "line": 39,
+                    "hits": 0,
+                    "covered": false,
+                    "lines": {
+                      "covered": 0,
+                      "total": 3
+                    },
+                    "functions": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 0,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#(anonymous_1)@18",
+                    "name": "(anonymous_1)",
+                    "type": "function",
+                    "language": null,
+                    "line": 18,
+                    "hits": 2,
+                    "covered": true,
+                    "lines": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 1,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#(anonymous_3)@27",
+                    "name": "(anonymous_3)",
+                    "type": "function",
+                    "language": null,
+                    "line": 27,
+                    "hits": 0,
+                    "covered": false,
+                    "lines": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 0,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#(anonymous_5)@36",
+                    "name": "(anonymous_5)",
+                    "type": "function",
+                    "language": null,
+                    "line": 36,
+                    "hits": 3,
+                    "covered": true,
+                    "lines": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 1,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/checkout/cart.ts#total@35",
+                    "name": "total",
+                    "type": "function",
+                    "language": null,
+                    "line": 35,
+                    "hits": 3,
+                    "covered": true,
+                    "lines": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 1,
+                      "total": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "pkg:web/src/util",
+            "name": "util",
+            "type": "package",
+            "language": "typescript",
+            "path": "src/util",
+            "lines": {
+              "covered": 1,
+              "total": 5
+            },
+            "functions": {
+              "covered": 1,
+              "total": 3
+            },
+            "files": {
+              "covered": 1,
+              "total": 1
+            },
+            "packages": {
+              "covered": 1,
+              "total": 1
+            },
+            "repositories": {
+              "covered": 1,
+              "total": 1
+            },
+            "children": [
+              {
+                "id": "file:web/src/util/format.ts",
+                "name": "format.ts",
+                "type": "file",
+                "language": "typescript",
+                "path": "src/util/format.ts",
+                "branches": {
+                  "covered": 0,
+                  "total": 2
+                },
+                "lines": {
+                  "covered": 1,
+                  "total": 5
+                },
+                "functions": {
+                  "covered": 1,
+                  "total": 3
+                },
+                "files": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "packages": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "repositories": {
+                  "covered": 1,
+                  "total": 1
+                },
+                "children": [
+                  {
+                    "id": "fn:web/src/util/format.ts#truncate@18",
+                    "name": "truncate",
+                    "type": "function",
+                    "language": null,
+                    "line": 18,
+                    "hits": 0,
+                    "covered": false,
+                    "lines": {
+                      "covered": 0,
+                      "total": 3
+                    },
+                    "functions": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 0,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/util/format.ts#formatMoney@8",
+                    "name": "formatMoney",
+                    "type": "function",
+                    "language": null,
+                    "line": 8,
+                    "hits": 2,
+                    "covered": true,
+                    "lines": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 1,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 1,
+                      "total": 1
+                    }
+                  },
+                  {
+                    "id": "fn:web/src/util/format.ts#formatPercent@13",
+                    "name": "formatPercent",
+                    "type": "function",
+                    "language": null,
+                    "line": 13,
+                    "hits": 0,
+                    "covered": false,
+                    "lines": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "functions": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "files": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "packages": {
+                      "covered": 0,
+                      "total": 1
+                    },
+                    "repositories": {
+                      "covered": 0,
+                      "total": 1
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       }
     ]
   },
-  "tool": "cover100 dev"
+  "tool": "cover100 0.0.0-20260914173534-fc080fab72ad+dirty"
 }

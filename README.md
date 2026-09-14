@@ -303,6 +303,17 @@ each of them rather than papering over it.
   function's declaration line and hit count but no body range, so functions
   parsed from the lcov fallback report their lines as `0 / 0` while still
   reporting correct hit counts.
+- **Anonymous functions are the provider's granularity, not cover100's.** A
+  class's field initializers are compiled into functions that the v8 coverage
+  provider reports without a name, so they appear in the *functions* metric as
+  `(anonymous_1)`, `(anonymous_2)`, and so on. They are real entries in the
+  provider's `fnMap`, and cover100 surfaces them rather than hiding them.
+- **`lines` granularity follows the coverage provider.** For TypeScript and
+  JavaScript the line set is whatever the runner's reporter emits: the v8
+  provider reports statement-level lines, while other reporters (and older
+  versions of the same one) emit a coarser line map for the same file. Compare
+  like with like across runs, and expect a dependency bump to shift the
+  denominator.
 - **Go lines are not statements.** `lines.covered / lines.total` counts distinct
   source lines that appear in the profile, while `go test` itself reports
   statement coverage. The two numbers will differ slightly; cover100 reports

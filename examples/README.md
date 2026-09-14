@@ -53,8 +53,16 @@ read without installing anything:
 $ python3 -m json.tool examples/coverage.example.json | head -40
 ```
 
-It reports **27 / 62 lines (43.5%)** overall and **4 / 8 functions (50.0%)**,
+It reports **14 / 42 lines (33.3%)** overall and **5 / 10 functions (50.0%)**,
 with Go function coverage correctly shown as `{covered: 0, total: 0}`.
+
+The TypeScript half of those numbers depends on the coverage provider's own
+granularity and will move when vitest does: vitest's v8 provider reports
+statement-level lines (`cart.ts` → 15 lines), while older versions emitted a
+coarser line map for the same file (28 lines). The Go half does not move,
+because it comes from `go test` itself. Regenerating after a dependency bump is
+therefore expected to change this file's numbers — that is the provider being
+more or less precise, not cover100 measuring differently.
 
 Its `root` field is `/tmp/cover100-example/sample-go-ts` — the neutral scratch
 path the generator used, not the machine that produced it. Regenerate it with:
