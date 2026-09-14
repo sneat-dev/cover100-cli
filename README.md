@@ -342,7 +342,7 @@ each of them rather than papering over it.
 make build     # compile ./cover100
 make install   # install to GOBIN as `cover100`
 make test      # go test ./...
-make cover     # enforce the same coverage floor CI enforces
+make cover     # enforce the 100% statement-coverage floor CI enforces
 make vet
 make fmt
 make spec-lint # validate the SpecScore tree
@@ -374,6 +374,14 @@ cover100-cli/
 ├── spec/                  # the SpecScore specification this code implements
 └── docs/
 ```
+
+Statement coverage is 100% across every package, and CI fails below it. That
+floor is only honest because platform-specific behaviour lives in build-tagged
+files (`internal/serve/browser_darwin.go`, `internal/tscov/runner_suffix_windows.go`)
+rather than in a `switch runtime.GOOS` inside shared code: `GOOS` is a
+compile-time constant, so on any one platform the other arms are dead code the
+coverage tool would still count against the denominator. Each platform's CI job
+covers its own file.
 
 It is built on the shared tooling rather than hand-rolled equivalents:
 `spf13/cobra` fronted by `charm.land/fang/v2` through

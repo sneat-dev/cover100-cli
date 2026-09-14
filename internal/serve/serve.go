@@ -12,8 +12,6 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
-	"os/exec"
-	"runtime"
 	"strings"
 	"time"
 
@@ -163,15 +161,7 @@ func (s *Server) Close() error {
 // only when no launcher could be started; a launcher that starts but fails is
 // the user's environment, not a cover100 failure, so the URL is always printed.
 func OpenBrowser(url string) error {
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	default:
-		cmd = exec.Command("xdg-open", url)
-	}
+	cmd := browserCommand(url)
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("opening %s: %w", url, err)
 	}

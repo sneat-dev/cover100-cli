@@ -122,10 +122,11 @@ func Scan(root string) (*Result, error) {
 			if p == abs {
 				return err
 			}
-			if d != nil && d.IsDir() {
-				return fs.SkipDir
-			}
-			return nil
+			// Below the root, WalkDir reports an error only for a directory it
+			// could not read — it never stats a plain file — so skipping that
+			// subtree is exactly right: one unreadable directory must not
+			// abandon the rest of the tree.
+			return fs.SkipDir
 		}
 		if d.IsDir() {
 			if p != abs && (strings.HasPrefix(d.Name(), ".") || skipDirs[d.Name()]) {

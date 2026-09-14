@@ -36,10 +36,21 @@ so neither may be left unverified.
 
 ### REQ: coverage-floor
 
-CI MUST enforce a minimum test-coverage floor over the project's own packages.
+CI MUST enforce a minimum test-coverage floor of 100% of statements over the
+project's own packages, measured with `go tool cover -func`.
+
 The floor MUST be a real number that the repository actually passes at the time
 it is set. A floor that is aspirational, or that is never checked, is worse than
 no floor: it trains reviewers to ignore the gate.
+
+A 100% floor is only honest when every branch is reachable on some supported
+platform, so platform-specific behaviour MUST live in build-tagged files
+(`browser_darwin.go`, `runner_suffix_windows.go`) rather than in a
+`switch runtime.GOOS` or an `if runtime.GOOS == ...` inside shared code: GOOS is
+a compile-time constant, so on any single platform the other arms are dead code
+that the coverage tool still counts against the denominator. A guard that cannot
+fail — one that only restates a standard-library guarantee — MUST be deleted
+rather than left permanently uncovered.
 
 ### REQ: goreleaser-artifacts
 
@@ -102,14 +113,16 @@ whole.
 
 ### AC: coverage-floor-enforced
 
-**Given** the configured minimum coverage floor and the project's own packages
+**Given** the configured minimum coverage floor of 100% and the project's own
+packages
 
-**When** CI measures coverage
+**When** CI measures coverage with `go tool cover -func`
 
 **Then** the measured value is compared against the floor and the workflow fails
 when coverage falls below it
 
-**And** the floor is a concrete number that the repository passes at HEAD.
+**And** the floor is a concrete number that the repository passes at HEAD, with
+no function reported below 100%.
 
 **Requirements:** release-pipeline#req:coverage-floor
 

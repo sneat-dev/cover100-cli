@@ -2,8 +2,12 @@ package main
 
 import (
 	"errors"
+	"io"
 	"io/fs"
+	"os"
+	"strings"
 	"testing"
+	"time"
 
 	cover100 "github.com/sneat-dev/cover100-cli"
 )
@@ -73,5 +77,45 @@ func TestRun_EmbeddedAssetsContainTheViewer(t *testing.T) {
 		if _, err := fs.Stat(cover100.PublicFS, name); err != nil {
 			t.Errorf("embedded assets are missing %s: %v", name, err)
 		}
+	}
+}
+
+// TestMain_VersionFlagReturnsWithoutExiting drives the real main() entry point.
+// It is the only way to cover the wiring that lives in main itself, and it is
+// safe because a successful run never reaches cli.Fatal's os.Exit.
+func TestMain_VersionFlagReturnsWithoutExiting(t *testing.T) {
+	originalArgs := os.Args
+	t.Cleanup(func() { os.Args = originalArgs })
+	os.Args = []string{"cover100", "--version"}
+
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Stdout = w
+	t.Cleanup(func() { os.Stdout = old })
+
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		main()
+	}()
+
+	select {
+	case <-returned:
+	case <-time.After(30 * time.Second):
+		t.Fatal("main() did not return for --version; it should never block or exit")
+	}
+
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	out, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.TrimSpace(string(out)) == "" {
+		t.Error("main() printed no version, so the flag never reached the CLI")
 	}
 }

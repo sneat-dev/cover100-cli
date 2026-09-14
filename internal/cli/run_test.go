@@ -134,21 +134,41 @@ func TestSelectProjects(t *testing.T) {
 }
 
 func TestTruncateLabel(t *testing.T) {
-	if got := truncateLabel("short", 42); got != "short" {
-		t.Errorf("truncateLabel(short) = %q", got)
+	tests := []struct {
+		name  string
+		input string
+		max   int
+		want  string
+	}{
+		{"fits", "short", 42, "short"},
+		{"exactly fits", "abc", 3, "abc"},
+		{"ellipsis keeps the tail", "a-very-long-repository-name-that-exceeds-the-budget", 20,
+			"...xceeds-the-budget"},
+		{"budget too small for an ellipsis", "abcdefgh", 3, "abc"},
+		{"zero budget", "abcdefgh", 0, ""},
 	}
-	got := truncateLabel("a-very-long-repository-name-that-exceeds-the-budget", 20)
-	if len(got) != 20 {
-		t.Errorf("truncateLabel() length = %d, want 20 (%q)", len(got), got)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := truncateLabel(tc.input, tc.max)
+			if got != tc.want {
+				t.Errorf("truncateLabel(%q, %d) = %q, want %q", tc.input, tc.max, got, tc.want)
+			}
+			if len(got) > tc.max {
+				t.Errorf("truncateLabel(%q, %d) = %q, longer than the budget", tc.input, tc.max, got)
+			}
+		})
 	}
 }
 
 func TestHumanBytes(t *testing.T) {
 	tests := map[int]string{
+		0:       "0 B",
 		512:     "512 B",
+		1024:    "1.0 KiB",
 		2048:    "2.0 KiB",
 		5 << 20: "5.0 MiB",
 		3 << 30: "3.0 GiB",
+		2 << 40: "2.0 TiB",
 	}
 	for in, want := range tests {
 		if got := humanBytes(in); got != want {

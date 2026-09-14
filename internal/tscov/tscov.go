@@ -14,7 +14,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -184,10 +183,7 @@ func runnerArgs(runner, outDir string) []string {
 // findRunnerBinary looks for a locally installed runner, walking up from the
 // package directory so hoisted monorepo installs are found too.
 func findRunnerBinary(dir, runner string) (string, bool) {
-	name := runner
-	if runtime.GOOS == "windows" {
-		name += ".cmd"
-	}
+	name := runner + runnerExecutableSuffix
 	for d := dir; ; {
 		candidate := filepath.Join(d, "node_modules", ".bin", name)
 		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {

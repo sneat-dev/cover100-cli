@@ -2,7 +2,7 @@
 
 BINARY  := cover100
 GOBIN   ?= $(shell go env GOPATH)/bin
-COVERAGE_FLOOR ?= 75
+COVERAGE_FLOOR ?= 100
 
 # build compiles the CLI into ./cover100.
 build:

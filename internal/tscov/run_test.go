@@ -1,8 +1,10 @@
 package tscov
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/sneat-dev/cover100-cli/internal/detect"
 	"github.com/sneat-dev/cover100-cli/internal/model"
+	"github.com/sneat-dev/cover100-cli/internal/ui"
 )
 
 // fakeRunner installs a stub test runner at <pkgDir>/node_modules/.bin/<runner>
@@ -218,4 +221,206 @@ func hasWarning(warnings []string, substring string) bool {
 		}
 	}
 	return false
+}
+
+// writeRunnerStub installs <pkgDir>/node_modules/.bin/<runner> containing the
+// given POSIX shell script. Unlike fakeRunner it lets a test control the whole
+// script, which the report-read and permission cases need.
+func writeRunnerStub(t *testing.T, pkgDir, runner, script string) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the stub runner is a POSIX shell script")
+	}
+
+	binDir := filepath.Join(pkgDir, "node_modules", ".bin")
+	if err := os.MkdirAll(binDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(binDir, runner), []byte("#!/bin/sh\n"+script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// reportWriterScript is a stub runner body that writes body to the coverage
+// directory named by the runner's coverage flags, then exits 0.
+func reportWriterScript(body string) string {
+	return fmt.Sprintf(`out=""
+for arg in "$@"; do
+  case "$arg" in
+    --coverage.reportsDirectory=*) out="${arg#--coverage.reportsDirectory=}" ;;
+    --coverageDirectory=*) out="${arg#--coverageDirectory=}" ;;
+  esac
+done
+mkdir -p "$out"
+cat > "$out/coverage-final.json" <<'REPORT'
+%s
+REPORT
+`, body)
+}
+
+func TestRun_WarnsWhenCoverageDirectoryCannotBeCreated(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	// A regular file in the path makes MkdirAll fail with ENOTDIR.
+	blocker := filepath.Join(t.TempDir(), "blocker")
+	if err := os.WriteFile(blocker, []byte("not a directory"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: filepath.Join(blocker, "work"),
+	}, 0)
+
+	if res.Err == nil {
+		t.Fatal("Run() error = nil, want the unusable work directory to be reported")
+	}
+	if !hasWarning(res.Warnings, "creating coverage directory") {
+		t.Errorf("Warnings = %v, want one naming the coverage directory", res.Warnings)
+	}
+	if res.Command != "" {
+		t.Errorf("Command = %q, want empty because the runner must not start", res.Command)
+	}
+}
+
+func TestRun_FallsBackToNpxWhenNoLocalRunner(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	abs := filepath.Join(pkgDir, "src", "a.ts")
+
+	// A stub npx on PATH stands in for a globally installed Node.js.
+	npxDir := t.TempDir()
+	script := "#!/bin/sh\n" + strings.Replace(reportWriterScript(istanbulBody(abs)), "mkdir -p", "/bin/mkdir -p", 1)
+	script = strings.Replace(script, "cat >", "/bin/cat >", 1)
+	if err := os.WriteFile(filepath.Join(npxDir, "npx"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", npxDir)
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(),
+	}, 0)
+
+	if res.Err != nil {
+		t.Fatalf("Run() error = %v (warnings: %v)", res.Err, res.Warnings)
+	}
+	if !strings.HasPrefix(res.Command, "npx -y vitest ") {
+		t.Errorf("Command = %q, want the npx fallback when no local runner exists", res.Command)
+	}
+	if len(res.Files) != 1 {
+		t.Fatalf("Files = %+v, want the report written by npx to be parsed", res.Files)
+	}
+}
+
+func TestRun_WarnsWhenNeitherLocalRunnerNorNpxExists(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	// An empty PATH hides npx; the package has no node_modules either.
+	t.Setenv("PATH", t.TempDir())
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(),
+	}, 0)
+
+	if res.Err == nil {
+		t.Fatal("Run() error = nil, want a failure when nothing can run the tests")
+	}
+	if !hasWarning(res.Warnings, "neither a local vitest nor npx on PATH") {
+		t.Errorf("Warnings = %v, want one explaining that neither the runner nor npx is available", res.Warnings)
+	}
+	if res.Files != nil {
+		t.Errorf("Files = %+v, want nil when no command ran", res.Files)
+	}
+}
+
+func TestRun_DebugsRunnerAndReportWhenVerbose(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	fakeRunner(t, pkgDir, runnerVitest, "coverage-final.json",
+		istanbulBody(filepath.Join(pkgDir, "src", "a.ts")), 0)
+
+	var diag bytes.Buffer
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(), Printer: ui.New(io.Discard, &diag, true),
+	}, 0)
+
+	if res.Err != nil {
+		t.Fatalf("Run() error = %v (warnings: %v)", res.Err, res.Warnings)
+	}
+	log := diag.String()
+	if !strings.Contains(log, "running") {
+		t.Errorf("debug log = %q, want the runner command diagnostic", log)
+	}
+	if !strings.Contains(log, "parsing") {
+		t.Errorf("debug log = %q, want the report-parsing diagnostic", log)
+	}
+}
+
+func TestRun_WarnsWhenReportCannotBeRead(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("file permissions are not enforced the same way on Windows")
+	}
+	if os.Geteuid() == 0 {
+		t.Skip("root bypasses file permission checks")
+	}
+	root, pkgDir := packageFixture(t)
+	body := istanbulBody(filepath.Join(pkgDir, "src", "a.ts"))
+	// The stub writes a valid report, then makes it unreadable.
+	writeRunnerStub(t, pkgDir, runnerVitest, reportWriterScript(body)+`chmod 000 "$out/coverage-final.json"
+`)
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(),
+	}, 0)
+
+	if res.Err == nil {
+		t.Fatal("Run() error = nil, want the unreadable report to be reported")
+	}
+	if !hasWarning(res.Warnings, "reading") {
+		t.Errorf("Warnings = %v, want one naming the failed read", res.Warnings)
+	}
+	if res.Files != nil {
+		t.Errorf("Files = %+v, want nil when the report could not be read", res.Files)
+	}
+}
+
+func TestRun_ReportsParseFailureAndDropsFiles(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	fakeRunner(t, pkgDir, runnerVitest, "coverage-final.json", "{ not valid json", 0)
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(),
+	}, 0)
+
+	if res.Err == nil {
+		t.Fatal("Run() error = nil, want the malformed report to be reported")
+	}
+	if res.Files != nil {
+		t.Errorf("Files = %+v, want nil after a parse failure", res.Files)
+	}
+	if !hasWarning(res.Warnings, "parsing coverage-final.json") {
+		t.Errorf("Warnings = %v, want one naming the malformed report", res.Warnings)
+	}
+}
+
+func TestRun_SortsParsedFilesByPath(t *testing.T) {
+	root, pkgDir := packageFixture(t)
+	a := filepath.Join(pkgDir, "src", "a.ts")
+	b := filepath.Join(pkgDir, "src", "b.ts")
+	loc := istanbulLocation{Start: istanbulPosition{Line: 1}, End: istanbulPosition{Line: 1, Column: 1}}
+	// The entries are keyed out of order so Run has to sort them.
+	body := marshalIstanbul(t, map[string]istanbulFile{
+		b: {Path: b, StatementMap: map[string]istanbulLocation{"0": loc}, S: map[string]int{"0": 1}},
+		a: {Path: a, StatementMap: map[string]istanbulLocation{"0": loc}, S: map[string]int{"0": 1}},
+	})
+	fakeRunner(t, pkgDir, runnerVitest, "coverage-final.json", body, 0)
+
+	res := Run(context.Background(), projectFor(root, pkgDir, runnerVitest), Options{
+		Root: root, WorkDir: t.TempDir(),
+	}, 0)
+
+	if res.Err != nil {
+		t.Fatalf("Run() error = %v (warnings: %v)", res.Err, res.Warnings)
+	}
+	if len(res.Files) != 2 {
+		t.Fatalf("Files = %+v, want two parsed files", res.Files)
+	}
+	if res.Files[0].Path != "web/src/a.ts" || res.Files[1].Path != "web/src/b.ts" {
+		t.Errorf("paths = [%s %s], want them sorted ascending", res.Files[0].Path, res.Files[1].Path)
+	}
 }

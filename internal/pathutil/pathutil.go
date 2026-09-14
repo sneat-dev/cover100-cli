@@ -44,8 +44,7 @@ func relTo(root, abs string) (string, bool) {
 	if rel == ".." || strings.HasPrefix(rel, "../") {
 		return "", false
 	}
-	if rel == "" {
-		return ".", true
-	}
+	// filepath.Rel returns "." for identical paths and never "": an empty
+	// result comes only with an error, which is handled above.
 	return rel, true
 }

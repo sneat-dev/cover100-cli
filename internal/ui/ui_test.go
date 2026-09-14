@@ -3,6 +3,7 @@ package ui
 import (
 	"bytes"
 	"context"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -60,6 +61,11 @@ func TestDuration(t *testing.T) {
 }
 
 func TestIsTTY_NonFileWriter(t *testing.T) {
+	// Clear the ambient colour settings so this exercises the type assertion
+	// rather than one of IsTTY's environment early returns.
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("TERM", "xterm-256color")
+
 	if IsTTY(&bytes.Buffer{}) {
 		t.Error("IsTTY(buffer) = true, want false")
 	}
@@ -224,5 +230,110 @@ func TestLogHandler_NilPrinterIsSafe(t *testing.T) {
 	h := LogHandler{}
 	if err := h.Log(context.Background(), logus.LogEntry{MessageFormat: "x"}); err != nil {
 		t.Fatalf("Log() = %v, want nil", err)
+	}
+}
+
+// devNullFile opens os.DevNull, which is a character device on every Unix, so
+// IsTTY's terminal probe has something real to inspect without touching a TTY.
+func devNullFile(t *testing.T) *os.File {
+	t.Helper()
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("opening %s: %v", os.DevNull, err)
+	}
+	t.Cleanup(func() { _ = f.Close() })
+	return f
+}
+
+func TestIsTTY_CharacterDeviceIsATerminal(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("TERM", "xterm-256color")
+
+	f := devNullFile(t)
+	fi, err := f.Stat()
+	if err != nil {
+		t.Fatalf("stat %s: %v", os.DevNull, err)
+	}
+	if fi.Mode()&os.ModeCharDevice == 0 {
+		t.Skipf("%s is not a character device here (mode %v)", os.DevNull, fi.Mode())
+	}
+	if !IsTTY(f) {
+		t.Errorf("IsTTY(%s) = false, want true: a character device is the fleet's definition of a terminal", os.DevNull)
+	}
+}
+
+func TestIsTTY_NoColorDisablesStyling(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	t.Setenv("TERM", "xterm-256color")
+
+	// A character device, so the only reason to report false is NO_COLOR.
+	f := devNullFile(t)
+	if fi, err := f.Stat(); err == nil && fi.Mode()&os.ModeCharDevice == 0 {
+		t.Skipf("%s is not a character device here (mode %v)", os.DevNull, fi.Mode())
+	}
+	if IsTTY(f) {
+		t.Error("IsTTY() = true, want false: NO_COLOR must win over the terminal check")
+	}
+}
+
+func TestIsTTY_DumbTerminalIsNotStyled(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("TERM", "dumb")
+
+	f := devNullFile(t)
+	if fi, err := f.Stat(); err == nil && fi.Mode()&os.ModeCharDevice == 0 {
+		t.Skipf("%s is not a character device here (mode %v)", os.DevNull, fi.Mode())
+	}
+	if IsTTY(f) {
+		t.Error("IsTTY() = true, want false when TERM=dumb")
+	}
+}
+
+func TestIsTTY_StatErrorIsNotATerminal(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("TERM", "xterm-256color")
+
+	f, err := os.Open(os.DevNull)
+	if err != nil {
+		t.Fatalf("opening %s: %v", os.DevNull, err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("closing %s: %v", os.DevNull, err)
+	}
+	if IsTTY(f) {
+		t.Error("IsTTY(closed *os.File) = true, want false: an unreadable mode must not be treated as a terminal")
+	}
+}
+
+func TestPrinter_StyleHonoursColourFlag(t *testing.T) {
+	p, _, _ := plainPrinter(false)
+	if got := p.style("\x1b[2m", "note"); got != "note" {
+		t.Errorf("style() with colour off = %q, want the unstyled text", got)
+	}
+
+	p.color = true
+	if got, want := p.style("\x1b[2m", "note"), "\x1b[2mnote\x1b[0m"; got != want {
+		t.Errorf("style() with colour on = %q, want %q", got, want)
+	}
+}
+
+func TestPrinter_BoldColourWrapsHeader(t *testing.T) {
+	p, out, _ := plainPrinter(false)
+	p.color = true
+
+	p.Bold("Coverage %s", "summary")
+	if got, want := out.String(), "\x1b[1mCoverage summary\x1b[0m\n"; got != want {
+		t.Errorf("Bold() with colour on = %q, want the ANSI-wrapped header %q", got, want)
+	}
+}
+
+func TestNumber_NegativeBelowOneThousand(t *testing.T) {
+	// The short-number path must re-attach the sign without inserting a
+	// separator, unlike the thousands path above it.
+	tests := map[int]string{-1: "-1", -42: "-42", -999: "-999"}
+	for in, want := range tests {
+		if got := Number(in); got != want {
+			t.Errorf("Number(%d) = %q, want %q", in, got, want)
+		}
 	}
 }

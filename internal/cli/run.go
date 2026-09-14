@@ -47,6 +47,19 @@ const (
 // and Run may be called more than once in tests.
 var logusOnce sync.Once
 
+// absPath and marshalReport are test seams.
+//
+// Both guard failures that are real but cannot be provoked from the
+// environment here: resolving a relative --out needs a readable working
+// directory (which macOS still reports after its directory is deleted), and
+// model.Report is JSON-safe by construction, so its encoder only fails for a
+// reason a future field could introduce. Routing them through a seam is what
+// makes those guards provable instead of permanently unexercised.
+var (
+	absPath       = filepath.Abs
+	marshalReport = json.MarshalIndent
+)
+
 // collectOptions mirrors the command's flags.
 type collectOptions struct {
 	path    string
@@ -192,7 +205,7 @@ func runCollect(ctx context.Context, cmd *cobra.Command, args []string, assets f
 		printer.Blank()
 	}
 
-	outPath, err := filepath.Abs(opts.out)
+	outPath, err := absPath(opts.out)
 	if err != nil {
 		return exitcode.UnexpectedErrorCause("resolving --out", err)
 	}
@@ -220,7 +233,7 @@ func runCollect(ctx context.Context, cmd *cobra.Command, args []string, assets f
 		Tool:     binaryName + " " + buildInfo.Short(),
 	})
 
-	data, err := json.MarshalIndent(report, "", "  ")
+	data, err := marshalReport(report, "", "  ")
 	if err != nil {
 		return exitcode.UnexpectedErrorCause("encoding the report", err)
 	}
@@ -290,6 +303,23 @@ func runCollect(ctx context.Context, cmd *cobra.Command, args []string, assets f
 	return serveReport(ctx, cmd, printer, opts, public, outPath, sum)
 }
 
+// reportServer is the part of *serve.Server the CLI drives.
+//
+// It is an interface rather than the concrete type so a test can substitute a
+// server whose Serve fails: the real one only returns an error on a listener
+// fault that cannot be provoked portably, and "serving the report failed" is a
+// path worth proving rather than assuming.
+type reportServer interface {
+	PageURL(metric, mode string) string
+	Serve() error
+	Close() error
+}
+
+// startReportServer is the seam over serve.Start.
+var startReportServer = func(opts serve.Options) (reportServer, error) {
+	return serve.Start(opts)
+}
+
 // serveReport starts the static server, opens the page and blocks until the
 // context is cancelled.
 func serveReport(
@@ -301,7 +331,7 @@ func serveReport(
 	outPath string,
 	sum summary,
 ) error {
-	srv, err := serve.Start(serve.Options{
+	srv, err := startReportServer(serve.Options{
 		Assets:    assets,
 		DataPath:  outPath,
 		DataRoute: "/coverage.json",
@@ -411,11 +441,10 @@ func collectAll(
 				Root: root, WorkDir: workDir, Printer: printer,
 			}, i)
 			nodeResults[i] = res
-			runner := res.Runner
-			if runner == "" {
-				runner = project.Runner
-			}
-			printer.Success("%s", projectLine("js", project.Rel, runner,
+			// res.Runner is always populated by tscov.Run, including the
+			// fallback it applies when a package declares no runner, so there
+			// is nothing to second-guess here.
+			printer.Success("%s", projectLine("js", project.Rel, res.Runner,
 				res.Files, time.Since(started)))
 		}(i)
 	}
@@ -619,8 +648,13 @@ func selectProjects(scan *detect.Result, lang string) (goProjects, nodeProjects 
 }
 
 // concurrency returns how many coverage commands may run at once.
-func concurrency() int {
-	n := runtime.NumCPU()
+func concurrency() int { return concurrencyFor(runtime.NumCPU()) }
+
+// concurrencyFor bounds the worker pool for a machine with cpus cores: at most
+// maxParallelProjects, never fewer than two. A monorepo with many packages
+// should not fork one test runner per package.
+func concurrencyFor(cpus int) int {
+	n := cpus
 	if n > maxParallelProjects {
 		n = maxParallelProjects
 	}

@@ -110,7 +110,14 @@ func executeWithPanicRecovery(root *cobra.Command, extraOpts ...fang.Option) (re
 // silentErrorHandler stops fang from rendering the error itself. Fatal is the
 // single place that reports an error and picks the exit code, so nothing is
 // printed twice.
-func silentErrorHandler(io.Writer, fang.Styles, error) {}
+//
+// The discard is written out rather than left as an empty body: it is the
+// function's whole contract, and an empty body would leave this handler
+// permanently reported at 0% by `go tool cover -func` for want of a statement
+// to measure.
+func silentErrorHandler(_ io.Writer, _ fang.Styles, err error) {
+	_ = err
+}
 
 // Fatal prints err and exits with the code it carries, defaulting to 1 for an
 // error that carries none.
