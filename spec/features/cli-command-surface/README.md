@@ -99,6 +99,13 @@ non-zero exit, and every such warning MUST appear both on stderr and in the
 document's `warnings` array, so that an interactive user and a machine consumer
 see the same facts.
 
+When a collection command exits non-zero, the CLI MUST surface the tail of
+that command's captured output on stderr, so a partial report is diagnosable
+without re-running the suite by hand. The transcript MUST be bounded rather than
+dumped in full: its last lines are where `go test` and the JavaScript runners
+print the failure summary. This is not gated behind `--verbose`, because the
+reason a report is partial is exactly what a reader needs in order to trust it.
+
 Progress and the summary MUST be written to stdout; warnings, errors, and
 diagnostics MUST be written to stderr. `--format json` MUST emit a single
 machine-readable run summary on stdout and nothing else, so that the command is

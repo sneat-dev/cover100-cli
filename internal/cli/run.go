@@ -41,6 +41,11 @@ const (
 	// maxParallelProjects caps concurrent coverage commands so a monorepo does
 	// not fork one test runner per package.
 	maxParallelProjects = 4
+	// failureTailLines is how much of a failed command's output is shown. Its
+	// last lines are the summary — "FAIL pkg [build failed]", the failing test
+	// names — which is what a reader needs in order to act; the full transcript
+	// is noise.
+	failureTailLines = 12
 )
 
 // logusOnce guards handler registration: logus panics on a duplicate handler,
@@ -422,6 +427,7 @@ func collectAll(
 			goResults[i] = res
 			printer.Success("%s", projectLine("go", project.Rel, res.ModulePath,
 				res.Files, time.Since(started)))
+			printFailureOutput(printer, project.Rel, res.Err, res.Output)
 		}(i)
 	}
 
@@ -446,11 +452,43 @@ func collectAll(
 			// is nothing to second-guess here.
 			printer.Success("%s", projectLine("js", project.Rel, res.Runner,
 				res.Files, time.Since(started)))
+			printFailureOutput(printer, project.Rel, res.Err, res.Output)
 		}(i)
 	}
 
 	wg.Wait()
 	return goResults, nodeResults
+}
+
+// printFailureOutput shows why a collection command failed.
+//
+// A partial report is only diagnosable if the reader can see what went wrong:
+// without this the run says "reported test failures" and leaves them to re-run
+// the suite by hand to find out which package failed. The transcript is bounded
+// to its last lines, which for `go test ./...` and the JS runners is where the
+// failure summary lives.
+func printFailureOutput(printer *ui.Printer, label string, err error, output string) {
+	if err == nil || strings.TrimSpace(output) == "" {
+		return
+	}
+	name := label
+	if name == "" {
+		name = "."
+	}
+	printer.Block(fmt.Sprintf("%s failed; last %d lines of its output:\n%s",
+		name, failureTailLines, tailLines(output, failureTailLines)))
+}
+
+// tailLines returns at most the last n lines of s.
+func tailLines(s string, n int) string {
+	lines := strings.Split(strings.TrimRight(s, "\n"), "\n")
+	if n <= 0 || len(lines) == 0 {
+		return ""
+	}
+	if len(lines) <= n {
+		return strings.Join(lines, "\n")
+	}
+	return strings.Join(lines[len(lines)-n:], "\n")
 }
 
 // projectLine renders one project's outcome as a single line, so concurrent

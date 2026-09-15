@@ -107,6 +107,18 @@ Node package whose coverage reporter never ran, contributes what it can and the
 rest of the run continues. Every warning appears on stderr **and** inside the
 report's `warnings` array, so a CI job that only reads the JSON still sees them.
 
+When a collection command fails, cover100 also prints the tail of its output, so
+a partial report is diagnosable without re-running the suite by hand:
+
+```console
+$ cover100 ~/src/monorepo
+ok: go  . (example.com/monorepo)  41.8% lines 30,199/72,271  58.8s
+    . failed; last 12 lines of its output:
+    --- FAIL: TestCleanupRejectsAttestedLandingCommit (0.12s)
+        worktrees_test.go:2311: git init --bare ...: exit status 69
+    FAIL	example.com/monorepo/internal/worktrees	79.2s
+```
+
 `--format json` writes one machine-readable summary to stdout and nothing else —
 progress moves to stderr — so the command is safe to pipe:
 
