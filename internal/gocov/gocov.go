@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/sneat-dev/cover100-cli/internal/detect"
+	"github.com/sneat-dev/cover100-cli/internal/executil"
 	"github.com/sneat-dev/cover100-cli/internal/model"
 	"github.com/sneat-dev/cover100-cli/internal/pathutil"
 	"github.com/sneat-dev/cover100-cli/internal/ui"
@@ -78,6 +79,7 @@ func Run(ctx context.Context, p detect.Project, opts Options, index int) *Result
 	}
 
 	cmd := exec.CommandContext(ctx, "go", args...)
+	executil.Prepare(cmd)
 	cmd.Dir = p.Dir
 	output, err := cmd.CombinedOutput()
 	res.Output = truncate(string(output), maxOutputBytes)

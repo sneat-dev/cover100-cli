@@ -360,6 +360,7 @@ cover100-cli/
 ├── internal/
 │   ├── cli/               # cobra/fang command tree, flags, run modes
 │   ├── detect/            # find Go modules and Node packages
+│   ├── executil/          # cancellable child processes (process-group kill)
 │   ├── gocov/             # run `go test`, parse the cover profile
 │   ├── tscov/             # run jest/vitest, parse Istanbul and lcov
 │   ├── aggregate/         # build the tree and roll the metrics up

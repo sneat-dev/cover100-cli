@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"github.com/sneat-dev/cover100-cli/internal/detect"
+	"github.com/sneat-dev/cover100-cli/internal/executil"
 	"github.com/sneat-dev/cover100-cli/internal/model"
 	"github.com/sneat-dev/cover100-cli/internal/pathutil"
 	"github.com/sneat-dev/cover100-cli/internal/ui"
@@ -104,6 +105,7 @@ func Run(ctx context.Context, p detect.Project, opts Options, index int) *Result
 		}
 		cmd = exec.CommandContext(ctx, npx, append([]string{"-y", runner}, args...)...)
 	}
+	executil.Prepare(cmd)
 	cmd.Dir = p.Dir
 	// CI keeps vitest out of watch mode and makes jest's output non-interactive.
 	cmd.Env = append(os.Environ(), "CI=true")
