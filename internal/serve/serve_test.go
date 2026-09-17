@@ -51,7 +51,7 @@ func TestServer_ServesReportAndAssets(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET %s: %v", srv.URL(), err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -73,7 +73,7 @@ func TestServer_ServesViewerAtRoot(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET /: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
@@ -156,7 +156,7 @@ func TestStart_CustomDataRoute(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GET %s: %v", srv.URL(), err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200 for the custom data route", resp.StatusCode)

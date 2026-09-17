@@ -22,7 +22,12 @@ rather than growing a hand-rolled equivalent.
 
 The command MUST be invoked as `cover100 [path] [flags]`, with `path` defaulting
 to the current directory. Path defaulting means the common case is a bare
-`cover100` in the repository being measured.
+`cover100` in the repository being measured. `self-update`, `install` and
+`upgrade` are registered as subcommands beside this root verb; see
+[install#req:install-verb-vs-path-argument](../install/README.md#req-install-verb-vs-path-argument)
+for how a subcommand name and a literal path of the same name are told
+apart — the same resolution applies to `upgrade` (`cover100 upgrade`
+resolves to the subcommand; `cover100 ./upgrade` still means a path).
 
 The command MUST accept these flags with these exact defaults:
 
@@ -99,6 +104,16 @@ non-zero exit, and every such warning MUST appear both on stderr and in the
 document's `warnings` array, so that an interactive user and a machine consumer
 see the same facts.
 
+`self-update`, `install` and `upgrade` (see [Install](../install/README.md))
+share this SAME `2`/`10` subset of the table through one error mapper
+(`installErrors`) — never `3`, which is specific to the root collect
+command's own scan-path resolution, and never `1`, which does not appear in
+this table at all: an error without its own `ExitCode()` falls back to `1`
+only in `Fatal` (root.go), a case `installErrors` never produces
+(cli-install#req:self-update-equals-upgrade-self: "for every outcome ...
+exit codes stay those self-update already documents" — a shared mapper is
+what makes that hold for cover100's own three commands).
+
 When a collection command exits non-zero, the CLI MUST surface the tail of
 that command's captured output on stderr, so a partial report is diagnosable
 without re-running the suite by hand. The transcript MUST be bounded rather than
@@ -116,11 +131,14 @@ scriptable with a plain JSON parse.
 The command surface MUST be built on the shared fleet stack rather than
 hand-rolled equivalents: `spf13/cobra` fronted by `charm.land/fang/v2` via
 `github.com/strongo/buildinfo/fangcmd.Wire`; version identity from
-`github.com/strongo/buildinfo`; diagnostics through `github.com/strongo/logus`;
-and a `self-update` verb built from
-`github.com/strongo/cli-helpers/selfupdate/cobracmd`. Reuse is what keeps help
-formatting, version reporting, logging, and self-update behaviour identical
-across the fleet's CLIs and fixes them in one place.
+`github.com/strongo/buildinfo`, including `version --json`
+(cli-install#req:version-json-contract); diagnostics through
+`github.com/strongo/logus`; a `self-update` verb built from
+`github.com/strongo/cli-helpers/selfupdate/cobracmd`; and `install` and
+`upgrade` verbs built from `github.com/strongo/cli-helpers/cliinstall/cobracmd`
+(see [Install](../install/README.md)). Reuse is what keeps help formatting,
+version reporting, logging, self-update, install and upgrade behaviour
+identical across the fleet's CLIs and fixes them in one place.
 
 ## Acceptance criteria
 
@@ -227,7 +245,8 @@ errors, and diagnostics go to stderr
 through `github.com/strongo/buildinfo/fangcmd.Wire`, reports version identity
 from `github.com/strongo/buildinfo`, logs through `github.com/strongo/logus`,
 and exposes a `self-update` verb built from
-`github.com/strongo/cli-helpers/selfupdate/cobracmd`.
+`github.com/strongo/cli-helpers/selfupdate/cobracmd` and `install`/`upgrade`
+verbs built from `github.com/strongo/cli-helpers/cliinstall/cobracmd`.
 
 **Requirements:** cli-command-surface#req:exit-codes-and-output, cli-command-surface#req:fleet-stack-reuse
 

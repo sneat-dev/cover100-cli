@@ -46,6 +46,16 @@ release binary can update itself:
 $ cover100 self-update
 ```
 
+`cover100 install` lists and installs the other fleet CLIs (`codegrapher`, `wb`) relevant to cover100, the same way `self-update` installs cover100 itself, and `cover100 upgrade` is the fleet-wide counterpart to `self-update`: it reports and upgrades every *installed* catalog CLI, including cover100 itself.
+
+```console
+$ cover100 install                # list fleet CLIs relevant to cover100, with live status
+$ cover100 upgrade                # report every installed catalog CLI plus cover100; changes nothing
+$ cover100 upgrade --all          # upgrade every installed catalog CLI plus cover100
+```
+
+`cover100 self-update` is exactly `cover100 upgrade cover100`: both build from the same release identity, so they never disagree. Full contract: [`spec/features/install/`](spec/features/install/README.md).
+
 Collection itself needs the toolchains it measures: the `go` command for Go
 modules, and Node with the project's own test runner installed for
 TypeScript/JavaScript packages.
@@ -400,7 +410,8 @@ It is built on the shared tooling rather than hand-rolled equivalents:
 `spf13/cobra` fronted by `charm.land/fang/v2` through
 `github.com/strongo/buildinfo/fangcmd`, version identity from
 `github.com/strongo/buildinfo`, diagnostics through `github.com/strongo/logus`,
-and `self-update` from `github.com/strongo/cli-helpers/selfupdate`.
+`self-update` from `github.com/strongo/cli-helpers/selfupdate`, and
+`install`/`upgrade` from `github.com/strongo/cli-helpers/cliinstall`.
 
 ### Specification
 

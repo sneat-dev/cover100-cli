@@ -50,6 +50,18 @@ checksum:
   name_template: "cover100_{{ .Version }}_checksums.txt"
   algorithm: sha256
 
+# Pinned explicitly, rather than left to GoReleaser's git-remote
+# auto-detection, so a consumer-side offline test
+# (internal/cli/install_goreleaser_test.go, cli-install#req:catalog-
+# identity-single-source) can assert this matches the release repository
+# cover100's own catalog entry (cliinstall.ByID("cover100")) declares —
+# drift here would otherwise only surface as a 404 in someone else's
+# `install cover100`.
+release:
+  github:
+    owner: sneat-dev
+    name: cover100-cli
+
 changelog:
   sort: asc
   filters:
