@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/strongo/cli-helpers/cliinstall"
 	"github.com/strongo/cli-helpers/selfupdate"
 
 	"github.com/sneat-dev/cover100-cli/internal/detect"
@@ -325,13 +326,21 @@ func TestNewRootCmd_FlagDefaultsMatchTheDocumentedContract(t *testing.T) {
 // --- self_update.go ---
 
 func TestSelfUpdateConfig_DescribesThePublishedArtifacts(t *testing.T) {
+	// cliinstall#req:catalog-identity-single-source: self-update's Config
+	// is built from cover100's own catalog entry now, so this test compares
+	// against that entry rather than a second, hand-duplicated set of
+	// wants that could silently drift from it.
+	entry, ok := cliinstall.ByID(binaryName)
+	if !ok {
+		t.Fatalf("no catalog entry for %q", binaryName)
+	}
 	cfg := selfUpdateConfig()
 
 	if cfg.BinaryName != binaryName {
 		t.Errorf("BinaryName = %q, want %q", cfg.BinaryName, binaryName)
 	}
-	if cfg.Repository != repository {
-		t.Errorf("Repository = %q, want %q", cfg.Repository, repository)
+	if cfg.Repository != entry.Repository {
+		t.Errorf("Repository = %q, want catalog entry Repository %q", cfg.Repository, entry.Repository)
 	}
 	if cfg.CurrentVersion != buildInfo.Version {
 		t.Errorf("CurrentVersion = %q, want %q", cfg.CurrentVersion, buildInfo.Version)
@@ -344,11 +353,14 @@ func TestSelfUpdateConfig_DescribesThePublishedArtifacts(t *testing.T) {
 	if cfg.HTTPClient == nil {
 		t.Error("HTTPClient = nil, want a bounded client so a hung endpoint cannot wedge an update")
 	}
+	if len(cfg.Managers) != 0 {
+		t.Errorf("Managers = %v, want none: cover100 publishes only plain GitHub release archives", cfg.Managers)
+	}
 	// Every platform .goreleaser.yml publishes must be listed, or a supported
-	// download would be refused.
-	if len(cfg.SupportedPlatforms) != 6 {
-		t.Errorf("SupportedPlatforms = %d entries, want 6 (darwin/linux/windows x amd64/arm64)",
-			len(cfg.SupportedPlatforms))
+	// download would be refused; this now comes from the catalog entry.
+	if len(cfg.SupportedPlatforms) != len(entry.SupportedPlatforms) {
+		t.Errorf("SupportedPlatforms = %d entries, want %d (from the catalog entry, darwin/linux/windows x amd64/arm64)",
+			len(cfg.SupportedPlatforms), len(entry.SupportedPlatforms))
 	}
 }
 

@@ -5,45 +5,30 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/strongo/cli-helpers/cliinstall"
 	"github.com/strongo/cli-helpers/selfupdate"
 	selfupdatecmd "github.com/strongo/cli-helpers/selfupdate/cobracmd"
 )
 
-// repository is the GitHub repository cover100 releases from. The self-update
-// verb downloads that repository's release archives, which is why the
-// GoReleaser configuration must publish plain archives plus checksums.txt.
-const repository = "sneat-dev/cover100-cli"
-
-// selfUpdateConfig describes this CLI to the shared self-update machinery.
+// selfUpdateConfig describes this CLI to the shared self-update machinery,
+// built from cover100's own compiled-in catalog entry
+// (cliinstall.ByID("cover100")) rather than a hand-written duplicate
+// (cli-install#req:catalog-identity-single-source: "A host's self-update
+// SHOULD build its Config from its own entry so its self-update and every
+// other host's install <that cli> resolve releases identically"). The
+// catalog entry (cliinstall/catalog_cover100.go in strongo/cli-helpers)
+// carries the repository, supported platforms and version-probe args this
+// function used to hand-roll, and no Managers: cover100 is published only
+// as plain GitHub release archives (see .goreleaser.yml), so an install
+// path that matches nothing is reported as Ambiguous and refused, which is
+// the safe outcome — self-update never overwrites a binary it cannot
+// classify. HTTPClient is the one thing only self-update itself needs,
+// which the same REQ allows a host to add on top of its entry.
 func selfUpdateConfig() selfupdate.Config {
-	return selfupdate.Config{
-		BinaryName:     binaryName,
-		Repository:     repository,
-		CurrentVersion: buildInfo.Version,
-		// UndeterminedVersions is deliberately left unset: Config defaults it to
-		// []string{"dev"}, which is exactly the placeholder buildinfo.Get
-		// returns for an unstamped local build.
-		// No package-manager installs are registered: this CLI is published
-		// only as plain GitHub release archives (see .goreleaser.yml), so a
-		// manager entry would be dead configuration. An install path that
-		// matches nothing is reported as Ambiguous and refused, which is the
-		// safe outcome — self-update never overwrites a binary it cannot
-		// classify.
-		// Every combination GoReleaser publishes (see .goreleaser.yml): a
-		// platform missing here would be refused an update it could have had.
-		SupportedPlatforms: []selfupdate.Platform{
-			{GOOS: "darwin", GOARCH: "amd64"},
-			{GOOS: "darwin", GOARCH: "arm64"},
-			{GOOS: "linux", GOARCH: "amd64"},
-			{GOOS: "linux", GOARCH: "arm64"},
-			{GOOS: "windows", GOARCH: "amd64"},
-			{GOOS: "windows", GOARCH: "arm64"},
-		},
-		// The root command's own --version flag is what the post-swap probe
-		// reads, so the probe arguments match cobra's built-in flag.
-		VersionProbeArgs: []string{"--version"},
-		HTTPClient:       &http.Client{Timeout: 30 * time.Second},
-	}
+	entry, _ := cliinstall.ByID(binaryName)
+	cfg := entry.Config(buildInfo.Version)
+	cfg.HTTPClient = &http.Client{Timeout: 30 * time.Second}
+	return cfg
 }
 
 // newSelfUpdateCmd builds the self-update verb from the shared library so

@@ -22,7 +22,11 @@ rather than growing a hand-rolled equivalent.
 
 The command MUST be invoked as `cover100 [path] [flags]`, with `path` defaulting
 to the current directory. Path defaulting means the common case is a bare
-`cover100` in the repository being measured.
+`cover100` in the repository being measured. `self-update` and `install` are
+registered as subcommands beside this root verb; see
+[install#req:install-verb-vs-path-argument](../install/README.md#req-install-verb-vs-path-argument)
+for how a subcommand name and a literal path of the same name are told
+apart.
 
 The command MUST accept these flags with these exact defaults:
 
@@ -116,11 +120,14 @@ scriptable with a plain JSON parse.
 The command surface MUST be built on the shared fleet stack rather than
 hand-rolled equivalents: `spf13/cobra` fronted by `charm.land/fang/v2` via
 `github.com/strongo/buildinfo/fangcmd.Wire`; version identity from
-`github.com/strongo/buildinfo`; diagnostics through `github.com/strongo/logus`;
-and a `self-update` verb built from
-`github.com/strongo/cli-helpers/selfupdate/cobracmd`. Reuse is what keeps help
-formatting, version reporting, logging, and self-update behaviour identical
-across the fleet's CLIs and fixes them in one place.
+`github.com/strongo/buildinfo`, including `version --json`
+(cli-install#req:version-json-contract); diagnostics through
+`github.com/strongo/logus`; a `self-update` verb built from
+`github.com/strongo/cli-helpers/selfupdate/cobracmd`; and an `install` verb
+built from `github.com/strongo/cli-helpers/cliinstall/cobracmd` (see
+[Install](../install/README.md)). Reuse is what keeps help formatting, version
+reporting, logging, self-update and install behaviour identical across the
+fleet's CLIs and fixes them in one place.
 
 ## Acceptance criteria
 
@@ -227,7 +234,8 @@ errors, and diagnostics go to stderr
 through `github.com/strongo/buildinfo/fangcmd.Wire`, reports version identity
 from `github.com/strongo/buildinfo`, logs through `github.com/strongo/logus`,
 and exposes a `self-update` verb built from
-`github.com/strongo/cli-helpers/selfupdate/cobracmd`.
+`github.com/strongo/cli-helpers/selfupdate/cobracmd` and an `install` verb
+built from `github.com/strongo/cli-helpers/cliinstall/cobracmd`.
 
 **Requirements:** cli-command-surface#req:exit-codes-and-output, cli-command-surface#req:fleet-stack-reuse
 
