@@ -9,6 +9,7 @@ import (
 	"github.com/strongo/cli-helpers/cliinstall"
 	"github.com/strongo/cli-helpers/cliinstall/cobracmd"
 	"github.com/strongo/cli-helpers/selfupdate"
+	selfupdatecmd "github.com/strongo/cli-helpers/selfupdate/cobracmd"
 
 	"github.com/sneat-dev/cover100-cli/pkg/exitcode"
 )
@@ -123,12 +124,9 @@ func TestInstallErrorsFailure_UnknownTargetMapsToUsageExitCode(t *testing.T) {
 }
 
 // TestInstallErrorsFailure_OtherKindsMapToFailureExitCode proves every
-// failure that is NOT KindUnknownTarget — the other cli-install-only
-// kinds, a self-update-shared kind, an already-*cobracmd.UsageError (a bad
-// --format or --all-with-names), and a plain error — maps to cover100's
-// own general failure exit code (pkg/exitcode.Unexpected), matching
-// task-11's two-bucket contract ("KindUnknownTarget as usage and others as
-// failure").
+// failure that is NOT KindUnknownTarget and NOT a usage error — the other
+// cli-install-only kinds, a self-update-shared kind, and a plain error —
+// maps to cover100's own general failure exit code (pkg/exitcode.Unexpected).
 func TestInstallErrorsFailure_OtherKindsMapToFailureExitCode(t *testing.T) {
 	cases := []struct {
 		name string
@@ -137,7 +135,6 @@ func TestInstallErrorsFailure_OtherKindsMapToFailureExitCode(t *testing.T) {
 		{"no install dir", &selfupdate.Failure{Kind: selfupdate.KindNoInstallDir, Err: errors.New("no per-user bin directory on PATH")}},
 		{"destination exists", &selfupdate.Failure{Kind: selfupdate.KindDestinationExists, Err: errors.New("destination already exists")}},
 		{"checksum (self-update-shared kind)", &selfupdate.Failure{Kind: selfupdate.KindChecksum, Err: errors.New("checksum mismatch")}},
-		{"already a usage error", &cobracmd.UsageError{Err: errors.New(`invalid --format "yaml": expected text or json`)}},
 		{"plain error", errors.New("network unavailable")},
 	}
 	for _, c := range cases {
@@ -157,6 +154,52 @@ func TestInstallErrorsFailure_OtherKindsMapToFailureExitCode(t *testing.T) {
 				t.Errorf("Failure(...) does not wrap the original error for errors.Is")
 			}
 		})
+	}
+}
+
+// TestInstallErrorsFailure_UsageErrorsMapToUsageExitCode proves BOTH usage
+// error shapes -- cliinstall/cobracmd's own *cobracmd.UsageError (a bad
+// --format or --all-with-names) and selfupdate/cobracmd's *selfupdatecmd.
+// UsageError (self-update's own invalid-flag shape, reachable now that
+// self-update shares this mapper too) -- map to cover100's usage exit code,
+// matching spec/features/cli-command-surface#req:exit-codes-and-output's
+// `2` for invalid arguments (cli-install#req:host-owned-exit-codes: "pass
+// usage errors ... through a distinguishable usage error type").
+func TestInstallErrorsFailure_UsageErrorsMapToUsageExitCode(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+	}{
+		{"install/upgrade usage error", &cobracmd.UsageError{Err: errors.New(`invalid --format "yaml": expected text or json`)}},
+		{"self-update usage error", &selfupdatecmd.UsageError{Err: errors.New(`invalid --format "yaml": expected text or json`)}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := (installErrors{}).Failure(c.err)
+			if got == nil {
+				t.Fatal("Failure(...) = nil, want a non-nil error")
+			}
+			var coder interface{ ExitCode() int }
+			if !errors.As(got, &coder) {
+				t.Fatalf("Failure(%v) = %v (%T), want an exitcode.Error", c.err, got, got)
+			}
+			if coder.ExitCode() != exitcode.InvalidArgs {
+				t.Errorf("Failure(...) ExitCode() = %d, want %d (usage)", coder.ExitCode(), exitcode.InvalidArgs)
+			}
+			if !errors.Is(got, c.err) {
+				t.Errorf("Failure(...) does not wrap the original error for errors.Is")
+			}
+		})
+	}
+}
+
+// TestInstallErrorsFailure_UpdateAvailableIsInformational proves
+// installErrors.UpdateAvailable (self-update/cobracmd.ErrorMapper's own
+// method, reachable now that self-update shares this mapper) never turns an
+// available update into a failure.
+func TestInstallErrorsFailure_UpdateAvailableIsInformational(t *testing.T) {
+	if err := (installErrors{}).UpdateAvailable(selfupdate.CheckResult{Verdict: selfupdate.UpdateAvailable}); err != nil {
+		t.Errorf("UpdateAvailable(...) = %v, want nil (informational only)", err)
 	}
 }
 
@@ -191,8 +234,8 @@ func TestInstallCmdNoSuchTarget_ExitCodeContract(t *testing.T) {
 
 // TestInstallCmdInvalidFormat_ExitCodeContract proves a plain
 // *cobracmd.UsageError (never a KindUnknownTarget failure) still lands in
-// cover100's general failure bucket, per task-11's literal two-bucket
-// mapping — only KindUnknownTarget gets the usage exit code.
+// cover100's usage exit code, matching spec/features/cli-command-surface
+// #req:exit-codes-and-output's `2` for invalid arguments.
 func TestInstallCmdInvalidFormat_ExitCodeContract(t *testing.T) {
 	cmd := newInstallCmd()
 	cmd.SetOut(&strings.Builder{})
@@ -207,8 +250,8 @@ func TestInstallCmdInvalidFormat_ExitCodeContract(t *testing.T) {
 	if !errors.As(err, &coder) {
 		t.Fatalf("error %v (%T), want an exitcode.Error", err, err)
 	}
-	if coder.ExitCode() != exitcode.Unexpected {
-		t.Errorf("ExitCode() = %d, want %d (failure)", coder.ExitCode(), exitcode.Unexpected)
+	if coder.ExitCode() != exitcode.InvalidArgs {
+		t.Errorf("ExitCode() = %d, want %d (usage)", coder.ExitCode(), exitcode.InvalidArgs)
 	}
 	if !strings.Contains(err.Error(), "--format") {
 		t.Errorf("error %q does not mention --format", err.Error())

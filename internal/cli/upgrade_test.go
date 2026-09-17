@@ -86,7 +86,7 @@ func TestUpgradeCmdNoSuchTarget_ExitCodeContract(t *testing.T) {
 
 // TestUpgradeCmdInvalidFormat_ExitCodeContract proves a plain
 // *cobracmd.UsageError (never a KindUnknownTarget failure) still lands in
-// cover100's general failure bucket, matching install's own contract.
+// cover100's usage exit code, matching install's own contract.
 func TestUpgradeCmdInvalidFormat_ExitCodeContract(t *testing.T) {
 	cmd := newUpgradeCmd()
 	cmd.SetOut(&strings.Builder{})
@@ -101,8 +101,8 @@ func TestUpgradeCmdInvalidFormat_ExitCodeContract(t *testing.T) {
 	if !errors.As(err, &coder) {
 		t.Fatalf("error %v (%T), want an exitcode.Error", err, err)
 	}
-	if coder.ExitCode() != exitcode.Unexpected {
-		t.Errorf("ExitCode() = %d, want %d (failure)", coder.ExitCode(), exitcode.Unexpected)
+	if coder.ExitCode() != exitcode.InvalidArgs {
+		t.Errorf("ExitCode() = %d, want %d (usage)", coder.ExitCode(), exitcode.InvalidArgs)
 	}
 }
 
@@ -212,6 +212,52 @@ func TestUpgrade_SelfUpdateEqualsUpgradeSelf(t *testing.T) {
 	}
 	if !strings.Contains(upOut.String(), "99.0.0") {
 		t.Errorf("upgrade cover100 output %q does not report the same latest release self-update saw", upOut.String())
+	}
+}
+
+// TestUpgrade_SelfUpdateEqualsUpgradeSelf_SameFailureSameExitCode is the B1
+// fix's own regression test: self-update and upgrade cover100 MUST exit the
+// SAME code for the IDENTICAL underlying failure
+// (cli-install#req:self-update-equals-upgrade-self: "for every outcome ...
+// exit codes stay those self-update already documents"), driven through the
+// real commands rather than just the mapper in isolation, now that both
+// share installErrors (self_update.go's Errors field).
+func TestUpgrade_SelfUpdateEqualsUpgradeSelf_SameFailureSameExitCode(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "rate limited", http.StatusForbidden)
+	}))
+	t.Cleanup(srv.Close)
+	withFakeReleases(t, srv)
+
+	selfCmd := newSelfUpdateCmd()
+	selfCmd.SetOut(&strings.Builder{})
+	selfCmd.SetArgs([]string{"--check"})
+	selfErr := selfCmd.Execute()
+	if selfErr == nil {
+		t.Fatal("self-update --check against a failing release lookup returned nil, want an error")
+	}
+	var selfCoder interface{ ExitCode() int }
+	if !errors.As(selfErr, &selfCoder) {
+		t.Fatalf("self-update error %v (%T) does not expose ExitCode()", selfErr, selfErr)
+	}
+
+	upCmd := newUpgradeCmd()
+	upCmd.SetOut(&strings.Builder{})
+	upCmd.SetArgs([]string{binaryName, "--check"})
+	upErr := upCmd.Execute()
+	if upErr == nil {
+		t.Fatal("upgrade cover100 --check against a failing release lookup returned nil, want an error")
+	}
+	var upCoder interface{ ExitCode() int }
+	if !errors.As(upErr, &upCoder) {
+		t.Fatalf("upgrade error %v (%T) does not expose ExitCode()", upErr, upErr)
+	}
+
+	if selfCoder.ExitCode() != upCoder.ExitCode() {
+		t.Errorf("self-update exit = %d, upgrade cover100 exit = %d; want equal for the identical release-lookup failure", selfCoder.ExitCode(), upCoder.ExitCode())
+	}
+	if selfCoder.ExitCode() != exitcode.Unexpected {
+		t.Errorf("self-update exit = %d, want %d (general failure)", selfCoder.ExitCode(), exitcode.Unexpected)
 	}
 }
 

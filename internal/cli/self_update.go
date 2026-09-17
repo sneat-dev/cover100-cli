@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -25,7 +26,15 @@ import (
 // classify. HTTPClient is the one thing only self-update itself needs,
 // which the same REQ allows a host to add on top of its entry.
 func selfUpdateConfig() selfupdate.Config {
-	entry, _ := cliinstall.ByID(binaryName)
+	entry, ok := catalogEntryByID(binaryName)
+	if !ok {
+		// A host id absent from the compiled catalog is a programming error
+		// caught by this package's own tests, never a runtime state a user
+		// can trigger (cli-install#req:host-identity-from-catalog) --
+		// matching specscore's and chatwright's own panic, rather than
+		// silently running with an empty selfupdate.Config.
+		panic(fmt.Sprintf("cliinstall: no catalog entry for %q", binaryName))
+	}
 	cfg := entry.Config(buildInfo.Version)
 	cfg.HTTPClient = &http.Client{Timeout: 30 * time.Second}
 	return cfg
@@ -41,24 +50,33 @@ func selfUpdateConfig() selfupdate.Config {
 // than by two copies staying in sync.
 var selfUpdateConfigFunc = selfUpdateConfig
 
+// catalogEntryByID is a test seam over cliinstall.ByID so the defensive
+// panic in selfUpdateConfig (a host id absent from the compiled catalog,
+// which never happens in production -- cover100's own catalog entry always
+// exists) is exercisable, matching specscore's and chatwright's own
+// identical seam.
+var catalogEntryByID = cliinstall.ByID
+
 // newSelfUpdateCmd builds the self-update verb from the shared library so
 // cover100 does not hand-roll release lookup, checksum verification or the
 // atomic swap.
+//
+// Errors is installErrors{} (install.go) -- the SAME mapper install and
+// upgrade use, not a bespoke passthrough. Before this fix self-update let
+// every error pass through unchanged, which Fatal (root.go) defaults to
+// exit 1 for any error without its own ExitCode() method -- a code that
+// does not even appear in cover100's own exit-code table
+// (spec/features/cli-command-surface#req:exit-codes-and-output: `2`/`10`,
+// never `1`) and that silently disagreed with `upgrade cover100`'s exit `10`
+// for the identical failure (cli-install#req:self-update-equals-upgrade-self:
+// "for every outcome ... exit codes stay those self-update already
+// documents"). One shared mapper makes that equality hold by construction.
 func newSelfUpdateCmd() *cobra.Command {
 	return selfupdatecmd.New(selfUpdateConfigFunc(), selfupdatecmd.CommandOptions{
 		Use:        "self-update",
 		Short:      "Update the installed cover100 binary to the latest release",
 		Aliases:    []string{"update"},
 		JSONFormat: true,
-		// No exit-code contract of its own: every error passes through
-		// unchanged and an available update is informational, not a failure.
-		Errors: passthroughErrors{},
+		Errors:     installErrors{},
 	})
 }
-
-// passthroughErrors is this CLI's self-update ErrorMapper.
-type passthroughErrors struct{}
-
-func (passthroughErrors) Failure(err error) error { return err }
-
-func (passthroughErrors) UpdateAvailable(selfupdate.CheckResult) error { return nil }

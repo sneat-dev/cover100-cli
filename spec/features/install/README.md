@@ -114,35 +114,41 @@ catch, never a runtime state a user sees.
 Unlike a host with a single generic exit code, cover100 already distinguishes
 a usage mistake from an unexpected runtime failure for every other command it
 has (see [cli-command-surface#req:exit-codes-and-output](../cli-command-surface/README.md#req-exit-codes-and-output)).
-`install`'s error mapper follows the same two exit codes: `selfupdate.KindUnknownTarget`
-— mapped through an EXPLICIT branch, never a self-update default branch —
-maps to cover100's usage exit code `2`; every other failure — the other two
-cli-install-only kinds, any self-update-shared kind (download, checksum,
-permission, non-interactive refusal, a managed-command failure, ...), and an
+`self-update`, `install` and `upgrade` share the exact SAME error mapper
+(`installErrors`), so a checksum, release-lookup, permission or any other
+self-update-shared failure exits the same code regardless of which command
+hit it (cli-install#req:self-update-equals-upgrade-self: "for every outcome
+... exit codes stay those self-update already documents";
+cli-install#req:host-owned-exit-codes: "The upgrade command MUST use the
+same error mapper"). `selfupdate.KindUnknownTarget` and an
 already-`*cobracmd.UsageError` (an invalid `--format`, or `--all` combined
-with names) — maps to cover100's general failure exit code `10`
-(cli-install#req:host-owned-exit-codes). `install nosuchcli` MUST exit `2`
-and name the unknown target. `upgrade` MUST use the exact SAME `installErrors`
-mapper (cli-install#req:host-owned-exit-codes: "The upgrade command MUST use
-the same error mapper"); it declares no upgrades-available method, so
-`upgrade --check` never signals a dedicated exit code for an available
+with names) or `*selfupdatecmd.UsageError` (self-update's own invalid-flag
+shape) — mapped through EXPLICIT branches, never a self-update default
+branch — both map to cover100's usage exit code `2`; every other failure —
+the other two cli-install-only kinds and any self-update-shared kind
+(download, checksum, permission, non-interactive refusal, a managed-command
+failure, ...) — maps to cover100's general failure exit code `10`. `self-update`,
+`install nosuchcli` and `upgrade nosuchcli` all exit `2` and name the unknown
+target where one applies. `upgrade` declares no upgrades-available method,
+so `upgrade --check` never signals a dedicated exit code for an available
 update — matching `self-update`'s own `UpdateAvailable`, which always
-returns nil (informational only). `upgrade nosuchcli` MUST exit `2` and name
-the unknown target, matching `install nosuchcli` exactly.
+returns nil (informational only).
 
 | Exit code | Meaning |
 |---|---|
 | `0` | Success: every named target installed/upgraded, already installed/current, redirected, or dry run — including `upgrade --check` regardless of verdict |
-| `2` | Usage: an unknown install/upgrade target |
-| `10` | Any other failure: no usable install directory, a destination that already exists, any self-update-shared failure kind, or an invalid `--format`/`--all` usage |
+| `2` | Usage: an unknown install/upgrade target, or an invalid flag/argument to self-update, install or upgrade |
+| `10` | Any other failure: no usable install directory, a destination that already exists, or any self-update-shared failure kind |
 
 ## Implementation
 
 Source files implementing this feature:
 
 - [`internal/cli/install.go`](../../../internal/cli/install.go) — the
-  `installErrors` exit-code mapper and the `cobracmd.New` wiring against
-  `HostID: "cover100"`.
+  `installErrors` exit-code mapper, shared by `self-update`, `install` and
+  `upgrade`, and the `cobracmd.New` wiring against `HostID: "cover100"`.
+- [`internal/cli/self_update.go`](../../../internal/cli/self_update.go) —
+  wires `self-update`'s `Errors` field to the SAME `installErrors{}` value.
 - [`internal/cli/upgrade.go`](../../../internal/cli/upgrade.go) — the
   `cobracmd.NewUpgrade` wiring, reusing `installErrors` and resolving
   `HostConfig` through the same `selfUpdateConfigFunc` seam `self-update`
@@ -207,6 +213,14 @@ resolves to the root command itself with `./install` as its `path` argument.
 **Given** the compiled `cliinstall` catalog
 **When** `newUpgradeCmd()` builds the command, and separately `cover100 self-update --check` and `cover100 upgrade cover100 --check` run against the same release state
 **Then** the command registers `--all`, `--check`, `--yes`/`-y`, `--dry-run` and `--format`, carries no `update` alias, and both commands report the same current/latest verdict.
+
+### AC: self-update-and-upgrade-map-the-same-failure-the-same-way
+
+**Requirements:** install#req:exit-codes, cli-install#req:self-update-equals-upgrade-self
+
+**Given** `cover100 self-update --check` and `cover100 upgrade cover100 --check`, each pointed at a release lookup that fails identically (both built through the SAME `installErrors` mapper)
+**When** both commands run against that failure
+**Then** both exit the exact same code (`10`, general failure), proving the B1 fix: `self-update` no longer falls through to a bespoke passthrough that `Fatal` would otherwise default to exit `1`.
 
 ### AC: upgrade-unknown-target-exit-code
 

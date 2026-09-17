@@ -104,6 +104,16 @@ non-zero exit, and every such warning MUST appear both on stderr and in the
 document's `warnings` array, so that an interactive user and a machine consumer
 see the same facts.
 
+`self-update`, `install` and `upgrade` (see [Install](../install/README.md))
+share this SAME `2`/`10` subset of the table through one error mapper
+(`installErrors`) — never `3`, which is specific to the root collect
+command's own scan-path resolution, and never `1`, which does not appear in
+this table at all: an error without its own `ExitCode()` falls back to `1`
+only in `Fatal` (root.go), a case `installErrors` never produces
+(cli-install#req:self-update-equals-upgrade-self: "for every outcome ...
+exit codes stay those self-update already documents" — a shared mapper is
+what makes that hold for cover100's own three commands).
+
 When a collection command exits non-zero, the CLI MUST surface the tail of
 that command's captured output on stderr, so a partial report is diagnosable
 without re-running the suite by hand. The transcript MUST be bounded rather than

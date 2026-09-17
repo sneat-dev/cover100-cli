@@ -17,7 +17,6 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/strongo/cli-helpers/cliinstall"
-	"github.com/strongo/cli-helpers/selfupdate"
 
 	"github.com/sneat-dev/cover100-cli/internal/detect"
 	"github.com/sneat-dev/cover100-cli/internal/gocov"
@@ -364,19 +363,12 @@ func TestSelfUpdateConfig_DescribesThePublishedArtifacts(t *testing.T) {
 	}
 }
 
-func TestPassthroughErrors_ForwardsEverything(t *testing.T) {
-	mapper := passthroughErrors{}
-
-	sentinel := errors.New("update failed")
-	if got := mapper.Failure(sentinel); !errors.Is(got, sentinel) {
-		t.Errorf("Failure() = %v, want the error unchanged", got)
-	}
-	// An available update is information, not a failure: this CLI reserves no
-	// exit code for it.
-	if err := mapper.UpdateAvailable(selfupdate.CheckResult{}); err != nil {
-		t.Errorf("UpdateAvailable() = %v, want nil", err)
-	}
-}
+// installErrors replaced the old bespoke passthroughErrors self-update
+// mapper (B1 fix: self-update, install and upgrade now share ONE mapper so
+// the same failure exits the same code from all three) -- see install_test.go's
+// TestInstallErrorsFailure_OtherKindsMapToFailureExitCode and
+// TestInstallErrorsFailure_UpdateAvailableIsInformational for its own
+// coverage.
 
 // --- helpers.go ---
 
