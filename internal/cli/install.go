@@ -38,16 +38,17 @@ func newInstallCmd() *cobra.Command {
 // already-*cobracmd.UsageError for a bad --format or --all-with-names) maps
 // to cover100's general failure exit code.
 //
-// A nil err IS a real, reachable call on the ordinary success and dry-run
-// path, not just a defensive guard: cliinstall/cobracmd v0.20.0's
-// runInstall calls mapFailure(opts, plan.Failure()) and mapFailure(opts,
-// result.Failure()) unconditionally, and both return nil for a fully
-// successful batch, so installErrors.Failure(nil) runs on every successful
-// `cover100 install` and `cover100 install <name> --dry-run`. Feedback for
-// cli-helpers (known bug, not yet fixed at v0.20.0): mapFailure itself
-// should short-circuit nil before calling opts.Errors.Failure, matching
-// what ErrorMapper.Failure's own doc comment already promises ("maps a
-// non-nil command error").
+// Also serves as upgrade's own error mapper (see upgrade.go), so the SAME
+// two-bucket contract applies to both commands
+// (cli-install#req:host-owned-exit-codes: "The upgrade command MUST use the
+// same error mapper").
+//
+// cliinstall/cobracmd v0.21.0's mapFailure short-circuits a nil err before
+// ever calling opts.Errors.Failure (the fix for the known v0.20.0 bug this
+// comment used to document), so Failure is never called with nil through
+// that path anymore; the guard below stays only because it is trivially
+// free and keeps this method nil-safe for any direct caller, including
+// TestInstallErrorsFailure_NilReturnsNil.
 type installErrors struct{}
 
 // Failure maps err into cover100's own exit-code convention.

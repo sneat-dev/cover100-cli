@@ -31,11 +31,21 @@ func selfUpdateConfig() selfupdate.Config {
 	return cfg
 }
 
+// selfUpdateConfigFunc is a seam over selfUpdateConfig so tests can point a
+// full command execution at an httptest.Server instead of the real GitHub
+// API. newUpgradeCmd (upgrade.go) resolves its own HostConfig through this
+// SAME seam, so `cover100 self-update` and `cover100 upgrade cover100`
+// always build from the identical Config
+// (cli-install#req:self-update-equals-upgrade-self,
+// cli-install#req:host-target-is-running-binary), by construction rather
+// than by two copies staying in sync.
+var selfUpdateConfigFunc = selfUpdateConfig
+
 // newSelfUpdateCmd builds the self-update verb from the shared library so
 // cover100 does not hand-roll release lookup, checksum verification or the
 // atomic swap.
 func newSelfUpdateCmd() *cobra.Command {
-	return selfupdatecmd.New(selfUpdateConfig(), selfupdatecmd.CommandOptions{
+	return selfupdatecmd.New(selfUpdateConfigFunc(), selfupdatecmd.CommandOptions{
 		Use:        "self-update",
 		Short:      "Update the installed cover100 binary to the latest release",
 		Aliases:    []string{"update"},

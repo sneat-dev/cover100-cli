@@ -6,7 +6,7 @@ require (
 	charm.land/fang/v2 v2.0.1
 	github.com/spf13/cobra v1.10.2
 	github.com/strongo/buildinfo v0.3.0
-	github.com/strongo/cli-helpers v0.20.0
+	github.com/strongo/cli-helpers v0.21.0
 	github.com/strongo/logus v0.4.4
 	gopkg.in/yaml.v3 v3.0.1
 )

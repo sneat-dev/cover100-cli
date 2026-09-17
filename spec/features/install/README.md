@@ -12,8 +12,13 @@ status: Implementing
 ## Summary
 
 `cover100 install` lists and installs the fleet CLIs relevant to cover100,
-built entirely on the shared
+and `cover100 upgrade` reports and upgrades every installed catalog CLI plus
+cover100 itself, both built entirely on the shared
 [CLI Install Command Library](https://github.com/strongo/cli-helpers/blob/main/spec/features/cli-install/README.md).
+`cover100 self-update` is `cover100 upgrade cover100`: both reach the
+identical library call, because cover100 is always upgraded last and
+classified from its own self-update Config, never a `PATH` probe of its own
+binary.
 
 ## Problem
 
@@ -52,6 +57,26 @@ the library's full flag surface — `--all`, `--yes`/`-y`, `--dry-run`,
 `install` MUST NOT gain an `update` alias
 (cli-install#req:update-alias-policy): cover100 ships no `update` alias
 anywhere today.
+
+#### REQ: upgrade-command
+
+The CLI MUST expose `cover100 upgrade [name...]`, built from
+`github.com/strongo/cli-helpers/cliinstall/cobracmd`'s `cobracmd.NewUpgrade`.
+The command inherits the library's full upgrade flag surface — `--all`,
+`--check`, `--yes`/`-y`, `--dry-run`, and `--format text|json` — none of
+which is re-specified here, and MUST carry no `update` alias
+(cli-install#req:update-alias-policy). `upgrade`'s `HostConfig` MUST be the
+exact SAME Config (resolved through the `selfUpdateConfigFunc` seam)
+`self-update` itself builds, so `cover100 self-update` and `cover100 upgrade
+cover100` reach the identical library call
+(cli-install#req:self-update-equals-upgrade-self,
+cli-install#req:host-target-is-running-binary). cover100's self-update
+configures no after-update hook, so `HostAfterUpdate` is left nil. `cover100
+upgrade` (no further arguments recognizable as a path) MUST resolve to the
+`upgrade` subcommand's bare report, while `cover100 ./upgrade` MUST still be
+treated as the root command's `path` argument, following the SAME Cobra
+command-resolution rule [REQ: install-verb-vs-path-argument](#req-install-verb-vs-path-argument)
+already states for `install`.
 
 #### REQ: install-verb-vs-path-argument
 
@@ -97,12 +122,18 @@ permission, non-interactive refusal, a managed-command failure, ...), and an
 already-`*cobracmd.UsageError` (an invalid `--format`, or `--all` combined
 with names) — maps to cover100's general failure exit code `10`
 (cli-install#req:host-owned-exit-codes). `install nosuchcli` MUST exit `2`
-and name the unknown target.
+and name the unknown target. `upgrade` MUST use the exact SAME `installErrors`
+mapper (cli-install#req:host-owned-exit-codes: "The upgrade command MUST use
+the same error mapper"); it declares no upgrades-available method, so
+`upgrade --check` never signals a dedicated exit code for an available
+update — matching `self-update`'s own `UpdateAvailable`, which always
+returns nil (informational only). `upgrade nosuchcli` MUST exit `2` and name
+the unknown target, matching `install nosuchcli` exactly.
 
 | Exit code | Meaning |
 |---|---|
-| `0` | Success: every named target installed, already installed, redirected, or dry run |
-| `2` | Usage: an unknown install target |
+| `0` | Success: every named target installed/upgraded, already installed/current, redirected, or dry run — including `upgrade --check` regardless of verdict |
+| `2` | Usage: an unknown install/upgrade target |
 | `10` | Any other failure: no usable install directory, a destination that already exists, any self-update-shared failure kind, or an invalid `--format`/`--all` usage |
 
 ## Implementation
@@ -112,8 +143,12 @@ Source files implementing this feature:
 - [`internal/cli/install.go`](../../../internal/cli/install.go) — the
   `installErrors` exit-code mapper and the `cobracmd.New` wiring against
   `HostID: "cover100"`.
+- [`internal/cli/upgrade.go`](../../../internal/cli/upgrade.go) — the
+  `cobracmd.NewUpgrade` wiring, reusing `installErrors` and resolving
+  `HostConfig` through the same `selfUpdateConfigFunc` seam `self-update`
+  uses.
 - [`internal/cli/root.go`](../../../internal/cli/root.go) — registers
-  `newInstallCmd()` on the root command.
+  `newInstallCmd()` and `newUpgradeCmd()` on the root command.
 
 The shared behavior lives upstream, not in this repository:
 `github.com/strongo/cli-helpers` `cliinstall/`, `cliinstall/cliui/`,
@@ -125,8 +160,8 @@ The shared behavior lives upstream, not in this repository:
 
 | Feature | Interaction |
 |---|---|
-| [CLI command surface and static server](../cli-command-surface/README.md) | `install` is registered on the same root command as the `[path]`-accepting collect verb and the `self-update` verb; [REQ: install-verb-vs-path-argument](#req-install-verb-vs-path-argument) states how the two coexist. |
-| self-update (`internal/cli/self_update.go`) | Both commands build from the same `cliinstall.ByID("cover100")` / `selfupdate.Config` catalog entry, so `install`'s view of cover100 (shown by other CLIs) and `self-update`'s own release identity never disagree. |
+| [CLI command surface and static server](../cli-command-surface/README.md) | `install` and `upgrade` are registered on the same root command as the `[path]`-accepting collect verb and the `self-update` verb; [REQ: install-verb-vs-path-argument](#req-install-verb-vs-path-argument) states how they coexist. |
+| self-update (`internal/cli/self_update.go`) | `install` and `upgrade` build from the same `cliinstall.ByID("cover100")` catalog entry and the same `selfUpdateConfigFunc`-resolved `selfupdate.Config` self-update itself builds, so their view of cover100 (shown by other CLIs) and `self-update`'s own release identity never disagree, and `self-update`/`upgrade cover100` reach the identical library call (cli-install#req:self-update-equals-upgrade-self). |
 
 ## Acceptance Criteria
 
@@ -164,6 +199,30 @@ through the root command's own command lookup
 
 **Then** the first resolves to the `install` subcommand and the second
 resolves to the root command itself with `./install` as its `path` argument.
+
+### AC: upgrade-registration-and-self-update-equivalence
+
+**Requirements:** install#req:upgrade-command, cli-install#req:self-update-equals-upgrade-self
+
+**Given** the compiled `cliinstall` catalog
+**When** `newUpgradeCmd()` builds the command, and separately `cover100 self-update --check` and `cover100 upgrade cover100 --check` run against the same release state
+**Then** the command registers `--all`, `--check`, `--yes`/`-y`, `--dry-run` and `--format`, carries no `update` alias, and both commands report the same current/latest verdict.
+
+### AC: upgrade-unknown-target-exit-code
+
+**Requirements:** install#req:exit-codes
+
+**Given** the real command built exactly as `root.go` wires it
+**When** the user runs `cover100 upgrade nosuchcli`
+**Then** the command fails before any confirmation, network request or write, names `nosuchcli` in its error, and exits `2`, matching `install nosuchcli` exactly.
+
+### AC: upgrade-verb-resolves-over-path
+
+**Requirements:** install#req:upgrade-command
+
+**Given** the root command with `upgrade` registered
+**When** `cover100 upgrade` and `cover100 ./upgrade` are each resolved through the root command's own command lookup
+**Then** the first resolves to the `upgrade` subcommand and the second resolves to the root command itself with `./upgrade` as its `path` argument.
 
 The remaining behavior — the relevance matrix, listing and status probing,
 destination policy, checksum-verified direct installs, the confirmation
