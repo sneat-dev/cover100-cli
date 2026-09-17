@@ -67,7 +67,6 @@ var (
 
 // collectOptions mirrors the command's flags.
 type collectOptions struct {
-	path    string
 	out     string
 	open    bool
 	noOpen  bool
