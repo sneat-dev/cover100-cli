@@ -62,9 +62,9 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Measure and enforce the floor
-        run: make cover
-        env:
-          COVERAGE_FLOOR: 100
+        run: |
+          go test -count=1 -coverprofile=cover.out ./...
+          awk 'NR>1 && $NF==0 {print; bad=1} END{exit bad}' cover.out
 
   # Fail on go.mod/go.sum drift rather than letting a release runner repair it:
   # `-diff` reports without rewriting, so what is tagged is what was tested.

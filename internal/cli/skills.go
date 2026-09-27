@@ -22,14 +22,19 @@ const (
 var (
 	cover100SkillsCLI    = skillsync.Identity{Publisher: "cover100", Name: "cover100"}
 	cover100SkillsPlugin = skillsync.PluginIdentity{Publisher: "cover100", Name: "cover100"}
+
+	skillsFS             = ai.SkillsFS
+	skillsSubFS          = fs.Sub
+	skillsDigest         = skillsync.Digest
+	skillsEmbeddedBundle = skillsync.EmbeddedBundle
 )
 
 func newSkillsConfig() (skillsync.Config, error) {
-	source, err := fs.Sub(ai.SkillsFS, "skills")
+	source, err := skillsSubFS(skillsFS, "skills")
 	if err != nil {
 		return skillsync.Config{}, err
 	}
-	digest, err := skillsync.Digest(source)
+	digest, err := skillsDigest(source)
 	if err != nil {
 		return skillsync.Config{}, err
 	}
@@ -41,7 +46,7 @@ func newSkillsConfig() (skillsync.Config, error) {
 	if _, err := skillsync.CompareVersions(pluginVersion, pluginVersion); err != nil {
 		pluginVersion = cover100SkillsPluginVersion
 	}
-	bundle, err := skillsync.EmbeddedBundle(skillsync.BundleDescriptor{
+	bundle, err := skillsEmbeddedBundle(skillsync.BundleDescriptor{
 		Plugin: cover100SkillsPlugin,
 		Source: skillsync.Source{
 			Repository: "github.com/sneat-dev/cover100-cli",
@@ -64,8 +69,8 @@ func newSkillsConfig() (skillsync.Config, error) {
 func newSkillsCmd() *cobra.Command {
 	cfg, cfgErr := newSkillsConfig()
 	options := skillscmd.CommandOptions{
-		Use:   "skills",
-		Short: "Install cover100's Agent Skills into a harness's skills directory",
+		Use:    "skills",
+		Short:  "Install cover100's Agent Skills into a harness's skills directory",
 		Errors: skillsSyncErrors{},
 		Resolver: skillsync.ReleaseResolver{
 			Source:         githubrelease.Source{},

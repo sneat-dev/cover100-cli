@@ -13,6 +13,8 @@ specscore.local.yaml
 
 # Go test artefacts
 *.test
+*.out
+cover.out
 coverage.out
 coverage.txt
 

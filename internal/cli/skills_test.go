@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"io/fs"
 	"strings"
 	"testing"
 
@@ -133,3 +134,70 @@ func TestSkillsConfig_WithValidBuildInfo(t *testing.T) {
 	}
 }
 
+func TestSkillsConfig_Errors(t *testing.T) {
+	t.Run("SubFS error", func(t *testing.T) {
+		prevSub := skillsSubFS
+		skillsSubFS = func(fs.FS, string) (fs.FS, error) {
+			return nil, errors.New("simulated sub error")
+		}
+		t.Cleanup(func() { skillsSubFS = prevSub })
+
+		_, err := newSkillsConfig()
+		if err == nil || !strings.Contains(err.Error(), "simulated sub error") {
+			t.Fatalf("expected simulated sub error, got: %v", err)
+		}
+	})
+
+	t.Run("Digest error", func(t *testing.T) {
+		prevDigest := skillsDigest
+		skillsDigest = func(fs.FS) (string, error) {
+			return "", errors.New("simulated digest error")
+		}
+		t.Cleanup(func() { skillsDigest = prevDigest })
+
+		_, err := newSkillsConfig()
+		if err == nil || !strings.Contains(err.Error(), "simulated digest error") {
+			t.Fatalf("expected simulated digest error, got: %v", err)
+		}
+	})
+
+	t.Run("EmbeddedBundle error", func(t *testing.T) {
+		prevBundle := skillsEmbeddedBundle
+		skillsEmbeddedBundle = func(skillsync.BundleDescriptor, fs.FS) (skillsync.Bundle, error) {
+			return skillsync.Bundle{}, errors.New("simulated bundle error")
+		}
+		t.Cleanup(func() { skillsEmbeddedBundle = prevBundle })
+
+		_, err := newSkillsConfig()
+		if err == nil || !strings.Contains(err.Error(), "simulated bundle error") {
+			t.Fatalf("expected simulated bundle error, got: %v", err)
+		}
+	})
+}
+
+func TestSkillsCmd_ConfigError(t *testing.T) {
+	prevSub := skillsSubFS
+	skillsSubFS = func(fs.FS, string) (fs.FS, error) {
+		return nil, errors.New("simulated sub error")
+	}
+	t.Cleanup(func() { skillsSubFS = prevSub })
+
+	cmd := newSkillsCmd()
+	if cmd.RunE == nil {
+		t.Fatal("expected cmd.RunE to be set when newSkillsConfig fails")
+	}
+	err := cmd.RunE(cmd, []string{})
+	if err == nil {
+		t.Fatal("expected RunE to return error")
+	}
+	var coded *exitcode.Error
+	if !errors.As(err, &coded) {
+		t.Fatalf("expected *exitcode.Error, got %T: %v", err, err)
+	}
+	if coded.ExitCode() != exitcode.Unexpected {
+		t.Errorf("code = %d, want Unexpected (%d)", coded.ExitCode(), exitcode.Unexpected)
+	}
+	if !strings.Contains(coded.Error(), "prepare embedded cover100 skills") {
+		t.Errorf("unexpected error message: %q", coded.Error())
+	}
+}

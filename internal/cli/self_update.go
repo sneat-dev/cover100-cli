@@ -73,4 +73,3 @@ func (passthroughErrors) UpgradesAvailable([]cliinstall.UpgradeResult) error { r
 
 // fleetErrors is this CLI's ErrorMapper for fleet commands (install, upgrade, uninstall).
 type fleetErrors = passthroughErrors
-
