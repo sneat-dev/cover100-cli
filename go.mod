@@ -6,7 +6,7 @@ require (
 	charm.land/fang/v2 v2.0.1
 	github.com/spf13/cobra v1.10.2
 	github.com/strongo/buildinfo v0.3.0
-	github.com/strongo/cli-helpers v0.21.0
+	github.com/strongo/cli-helpers v0.24.0
 	github.com/strongo/logus v0.4.4
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -22,6 +22,7 @@ require (
 	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
+	github.com/gofrs/flock v0.13.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-runewidth v0.0.23 // indirect

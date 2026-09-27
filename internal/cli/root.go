@@ -76,7 +76,11 @@ files is reported as "not measured" rather than estimated.`,
 	root.SetErr(os.Stderr)
 	opts.bind(root)
 
-	root.AddCommand(newSelfUpdateCmd(), newInstallCmd(), newUpgradeCmd())
+	root.AddCommand(newSelfUpdateCmd())
+	root.AddCommand(newInstallCmd())
+	root.AddCommand(newUpgradeCmd())
+	root.AddCommand(newUninstallCmd())
+	root.AddCommand(newSkillsCmd())
 
 	fangOpts := fangcmd.Wire(root, buildInfo)
 	return root, fangOpts
